@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+   <arg name="launch_all" default="false" />
+
+  <!--  This loads the robot description  -->
+  <include if="$(arg launch_all)" file="$(find iiwa_moveit)/launch/moveit_planning_execution.launch">
+    <arg name="sim" value="false"/>
+  </include>
+
+  <node ns="iiwa" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
+  </node>
+
+</launch>
