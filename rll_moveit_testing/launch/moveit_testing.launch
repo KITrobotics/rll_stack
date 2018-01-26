@@ -7,7 +7,10 @@
     <arg name="sim" value="false"/>
   </include>
 
-  <node ns="iiwa" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
+  <node ns="iiwa_1" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
+  </node>
+
+  <node ns="iiwa_2" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
   </node>
 
 </launch>

@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<launch>
+    <!-- The planning and execution components of MoveIt! configured to run -->
+    <!-- using the ROS-Industrial interface. -->
+    
+    <!-- | 		PARAMETERS  		| -->
+    <!-- hardware_interface to use : PositionJointInterface, EffortJointInterface, VelocityJointInterface. -->
+    <arg name="hardware_interface" default="PositionJointInterface"/>
+    <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
+    <arg name="robot_name_1" default="iiwa_1"/>
+    <arg name="robot_name_2" default="iiwa_2"/>
+    <arg name="model_semantic_1" default="iiwa7_1" />
+    <arg name="model_semantic_2" default="iiwa7_2" />
+    <!-- Model of the iiwa to use : iiwa7, iiwa14 -->
+    <arg name="model" default="iiwa7"/>
+    <arg name="rviz" default="true" />
+
+    <group ns="$(arg robot_name_1)">
+        <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" 
+               to="/$(arg robot_name_1)/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" />
+        <remap from="robot_description" to="/$(arg robot_name_1)/robot_description" /> 
+        <remap from="/get_planning_scene" to="/$(arg robot_name_1)/get_planning_scene" /> 
+    </group>
+
+    <group ns="$(arg robot_name_2)">
+        <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" 
+               to="/$(arg robot_name_2)/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" />
+        <remap from="robot_description" to="/$(arg robot_name_2)/robot_description" /> 
+        <remap from="/get_planning_scene" to="/$(arg robot_name_2)/get_planning_scene" /> 
+    </group>
+    
+    <!-- Working with the real robot.  -->
+    <group ns="$(arg robot_name_1)">
+        
+        <!-- Load controllers accordingly to parameters -->
+        <include file="$(find rll_two_iiwas_control)/launch/iiwa_control.launch">
+            <arg name="hardware_interface" value="$(arg hardware_interface)" />
+            <arg name="controllers" value="joint_state_controller $(arg hardware_interface)_trajectory_controller" />
+            <arg name="robot_name" value="$(arg robot_name_1)" />
+            <arg name="model" value="$(arg model)" />
+        </include>
+        
+        <!-- Robot interface -->
+        <include file="$(find rll_two_iiwas_hw)/launch/iiwa_hw.launch" >
+            <arg name="hardware_interface" value="$(arg hardware_interface)" />
+            <arg name="robot_name" value="$(arg robot_name_1)" />
+        </include>
+        
+    </group>
+    <group ns="$(arg robot_name_2)">
+        
+        <!-- Load controllers accordingly to parameters -->
+        <include file="$(find rll_two_iiwas_control)/launch/iiwa_control.launch">
+            <arg name="hardware_interface" value="$(arg hardware_interface)" />
+            <arg name="controllers" value="joint_state_controller $(arg hardware_interface)_trajectory_controller" />
+            <arg name="robot_name" value="$(arg robot_name_2)" />
+            <arg name="model" value="$(arg model)" />
+        </include>
+        
+        <!-- Robot interface -->
+        <include file="$(find rll_two_iiwas_hw)/launch/iiwa_hw.launch" >
+            <arg name="hardware_interface" value="$(arg hardware_interface)" />
+            <arg name="robot_name" value="$(arg robot_name_2)"/>
+        </include>
+        
+    </group>
+    
+    <!-- Load move_group -->
+    <group ns="$(arg robot_name_1)">
+        <include file="$(find rll_two_iiwas_moveit)/launch/move_group.launch">
+            <arg name="publish_monitored_planning_scene" value="true" />
+            <arg name="hardware_interface" value="$(arg hardware_interface)"/>
+            <arg name="robot_name" value="$(arg robot_name_1)"/>
+            <arg name="model" value="$(arg model)" />
+            <arg name="model_semantic" value="$(arg model_semantic_1)" />
+            <arg name="origin_xyz" value="'0 0 0'"/>
+        </include>
+
+        <include if="$(arg rviz)" file="$(find iiwa_moveit)/launch/moveit_rviz.launch">
+            <arg name="config" value="true"/>
+        </include>
+
+    </group>
+
+    
+    <!-- Load move_group -->
+    <group ns="$(arg robot_name_2)">
+        <include file="$(find rll_two_iiwas_moveit)/launch/move_group.launch">
+            <arg name="publish_monitored_planning_scene" value="true" />
+            <arg name="hardware_interface" value="$(arg hardware_interface)"/>
+            <arg name="robot_name" value="$(arg robot_name_2)"/>
+            <arg name="model" value="$(arg model)" />
+            <arg name="model_semantic" value="$(arg model_semantic_2)" />
+            <arg name="origin_xyz" value="'0 0 0'"/>
+        </include>
+
+        <include if="$(arg rviz)" file="$(find iiwa_moveit)/launch/moveit_rviz.launch">
+           <arg name="config" value="true"/>
+        </include>
+
+    </group>
+
+</launch>
