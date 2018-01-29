@@ -1,16 +1,23 @@
 <?xml version="1.0"?>
 <launch>
-   <arg name="launch_all" default="false" />
+  <arg name="launch_all" default="false" />
+  <arg name="all_robots" default="false" />
+  <arg unless="$(arg all_robots)" name="robot" default="iiwa_2" />
 
   <!--  This loads the robot description  -->
   <include if="$(arg launch_all)" file="$(find iiwa_moveit)/launch/moveit_planning_execution.launch">
     <arg name="sim" value="false"/>
   </include>
 
-  <node ns="iiwa_1" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
-  </node>
+  <group if="$(arg all_robots)">
+    <node ns="iiwa_1" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
+    </node>
 
-  <node ns="iiwa_2" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
+    <node ns="iiwa_2" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
+    </node>
+  </group>
+
+  <node unless="$(arg all_robots)" ns="$(arg robot)" name="trajectory_sampler" pkg="rll_moveit_testing" type="trajectory_sampler" respawn="false" output="screen">
   </node>
 
 </launch>
