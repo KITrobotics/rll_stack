@@ -29,7 +29,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	move_group.setPlanningTime(10.0);
 
 	// slow down movement of the robot
-	move_group.setMaxVelocityScalingFactor(0.15);
+	move_group.setMaxVelocityScalingFactor(0.1);
 
 	// temporary hardcode all the needed poses until parameter server is ready
 	geometry_msgs::Pose home_bow, target_1, target_2;
@@ -42,19 +42,19 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	home_bow.orientation.z = 0.0;
 	home_bow.orientation.w = 0.0;
 
-	target_1.position.x = 0.5;
-	target_1.position.y = -0.3;
-	target_1.position.z = 0.3;
+	target_1.position.x = 0.3;
+	target_1.position.y = 0.5;
+	target_1.position.z = 0.4;
 	// target_1.position.x = 0.25;
 	// target_1.position.y = 0.25;
 	// target_1.position.z = 0.1;
 	target_1.orientation.x = 0.0;
 	target_1.orientation.y = 1.0;
-	target_1.orientation.z = 0.0;
-	target_1.orientation.w = 0.0;
+	target_1.orientation.z = -0.0;
+	target_1.orientation.w = 0;
 
 	target_2.position.x = 0.3;
-	target_2.position.y = 0.3;
+	target_2.position.y = -0.4;
 	target_2.position.z = 0.4;
 	target_2.orientation.x = 0.0;
 	target_2.orientation.y = 1.0;
@@ -126,7 +126,7 @@ TrajectorySampler::~TrajectorySampler() {}
 int main (int argc, char **argv)
 {
 	// Initialize ROS
-	ros::init(argc, argv, "trajectory_sampler");
+	ros::init(argc, argv, "trajectory_sampler_1");
 	ros::NodeHandle nh;
 
 	// ROS spinner.

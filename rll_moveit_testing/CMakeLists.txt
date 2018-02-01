@@ -122,6 +122,15 @@ add_executable(trajectory_sampler src/trajectory_sampler.cpp)
 add_dependencies(trajectory_sampler iiwa_msgs_generate_messages_cpp)
 target_link_libraries(trajectory_sampler ${catkin_LIBRARIES})
 
+add_executable(trajectory_sampler_1 src/trajectory_sampler_1.cpp)
+add_dependencies(trajectory_sampler_1 iiwa_msgs_generate_messages_cpp)
+target_link_libraries(trajectory_sampler_1 ${catkin_LIBRARIES})
+
+add_executable(trajectory_sampler_2 src/trajectory_sampler_2.cpp)
+add_dependencies(trajectory_sampler_2 iiwa_msgs_generate_messages_cpp)
+target_link_libraries(trajectory_sampler_2 ${catkin_LIBRARIES})
+
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use

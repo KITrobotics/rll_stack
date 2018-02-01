@@ -126,7 +126,7 @@ TrajectorySampler::~TrajectorySampler() {}
 int main (int argc, char **argv)
 {
 	// Initialize ROS
-	ros::init(argc, argv, "trajectory_sampler");
+	ros::init(argc, argv, "trajectory_sampler_2");
 	ros::NodeHandle nh;
 
 	// ROS spinner.
