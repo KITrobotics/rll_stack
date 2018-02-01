@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="iiwa7">
+
+  <!-- Import Rviz colors -->
+  <xacro:include filename="$(find iiwa_description)/urdf/materials.xacro" />
+  <!--Import the iiwa7 macro -->
+  <xacro:include filename="$(find iiwa_description)/urdf/iiwa7.xacro"/>
+
+  <!--  Arguments for the iiwa7 macro  -->
+  <xacro:arg name="hardware_interface" default="PositionJointInterface"/>
+  <xacro:arg name="robot_name" default="iiwa"/>
+
+  <material name="steel">
+    <color rgba="0.8784 0.8745 0.8588 1.0"/>
+  </material>
+  
+  <!--  Define the origin of your 3D space
+  Here we define a box lying at 0,0,0 with some dimensions. In reality, our robot is placed on top of a steel table.
+  This will include the table top in the scene and avoid the robot to hit it when using MoveIt!
+  -->
+
+  <link name="world">
+    <visual>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.2 1.6 0.2"/>
+      </geometry>
+      <material name="steel" />
+    </visual>
+    <collision>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry>
+        <box size="1.2 1.6 0.49"/>
+      </geometry>
+      <material name="steel" />
+    </collision>
+  </link>
+
+  <gazebo reference="world">
+    <static>true</static>
+  </gazebo>
+
+  <!-- Here we insert an iiwa7 robot in the scene, it's origin is just on top of the box previously defined. -->
+  <xacro:iiwa7 hardware_interface="$(arg hardware_interface)" robot_name="$(arg robot_name)" parent="world">
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </xacro:iiwa7>
+
+</robot>

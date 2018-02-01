@@ -5,7 +5,6 @@
   <arg name="robot_name" default="iiwa"/>
   <arg name="model" default="iiwa14"/>
   <arg name="model_semantic" default="iiwa14"/>
-  <arg name="origin_xyz" default="'0 0 0'"/>
 
   <include file="$(find rll_two_iiwas_moveit)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
@@ -13,7 +12,6 @@
     <arg name="robot_name" value="$(arg robot_name)"/>
     <arg name="model" value="$(arg model)"/>
     <arg name="model_semantic" value="$(arg model_semantic)"/>
-    <arg name="origin_xyz" value="$(arg origin_xyz)"/>    
   </include>
 
   <!-- GDB Debug Option -->

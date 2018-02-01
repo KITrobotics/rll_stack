@@ -73,10 +73,9 @@
             <arg name="robot_name" value="$(arg robot_name_1)"/>
             <arg name="model" value="$(arg model)" />
             <arg name="model_semantic" value="$(arg model_semantic_1)" />
-            <arg name="origin_xyz" value="'0 0 0'"/>
         </include>
 
-        <include if="$(arg rviz)" file="$(find iiwa_moveit)/launch/moveit_rviz.launch">
+        <include if="$(arg rviz)" file="$(find rll_two_iiwas_moveit)/launch/moveit_rviz.launch">
             <arg name="config" value="true"/>
         </include>
 
@@ -91,10 +90,9 @@
             <arg name="robot_name" value="$(arg robot_name_2)"/>
             <arg name="model" value="$(arg model)" />
             <arg name="model_semantic" value="$(arg model_semantic_2)" />
-            <arg name="origin_xyz" value="'0 0 0'"/>
         </include>
 
-        <include if="$(arg rviz)" file="$(find iiwa_moveit)/launch/moveit_rviz.launch">
+        <include if="$(arg rviz)" file="$(find rll_two_iiwas_moveit)/launch/moveit_rviz.launch">
            <arg name="config" value="true"/>
         </include>
 
