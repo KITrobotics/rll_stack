@@ -22,6 +22,9 @@
 TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	: move_group(PLANNING_GROUP)
 {
+	bool target_set;
+	geometry_msgs::Pose target_1, target_2;
+
 	my_iiwa.init();
 
 	// configure planner
@@ -29,69 +32,34 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	move_group.setPlanningTime(10.0);
 
 	// slow down movement of the robot
-	move_group.setMaxVelocityScalingFactor(0.15);
-
-	// temporary hardcode all the needed poses until parameter server is ready
-	geometry_msgs::Pose home_bow, target_1, target_2;
-
-	home_bow.position.x = 0.4;
-	home_bow.position.y = 0.0;
-	home_bow.position.z = 0.6;
-	home_bow.orientation.x = 0.0;
-	home_bow.orientation.y = 1.0;
-	home_bow.orientation.z = 0.0;
-	home_bow.orientation.w = 0.0;
-
-	target_1.position.x = 0.5;
-	target_1.position.y = -0.3;
-	target_1.position.z = 0.3;
-	// target_1.position.x = 0.25;
-	// target_1.position.y = 0.25;
-	// target_1.position.z = 0.1;
-	target_1.orientation.x = 0.0;
-	target_1.orientation.y = 1.0;
-	target_1.orientation.z = 0.0;
-	target_1.orientation.w = 0.0;
-
-	target_2.position.x = 0.3;
-	target_2.position.y = 0.3;
-	target_2.position.z = 0.4;
-	target_2.orientation.x = 0.0;
-	target_2.orientation.y = 1.0;
-	target_2.orientation.z = 0.0;
-	target_2.orientation.w = 0.0;
+	move_group.setMaxVelocityScalingFactor(0.1);
 
 	while (ros::ok()) {
 		if (my_iiwa.getRobotIsConnected()) {
 
-			// first move to home
 			ROS_INFO("Moving to home");
-			// moveToPose(home_bow);
-			// set starting pose
 			move_group.setStartStateToCurrentState();
-
 			move_group.setNamedTarget("home_bow");
-			success_plan = move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
-			ROS_INFO("Planning result: %s",
-				 success_plan ? "SUCCEEDED" : "FAILED");
+			runTrajectory();
 
-			if (success_plan) {
-				success_plan = move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
-				ROS_INFO("Plan execution result: %s",
-					 success_plan ? "SUCCEEDED" : "FAILED");
+			ros::param::get("target_pos_set", target_set);
+			if (target_set && getTargets(&target_1, &target_2)) {
+				ROS_INFO("Moving to target 1");
+				move_group.setStartStateToCurrentState();
+				move_group.setPoseTarget(target_1);
+				runTrajectory();
 
-				// stay a little a the target
-				ros::Duration(3.0).sleep();
+				ROS_INFO("Moving to target 2");
+				move_group.setStartStateToCurrentState();
+				move_group.setPoseTarget(target_2);
+				runTrajectory();
+
+				// reset after one run
+				ros::param::set("target_pos_set", false);
 			} else {
-				ROS_WARN("Not executing because planning failed");
+				ROS_WARN("No target set or unable to get target");
+				ros::Duration(5.0).sleep(); // 5 seconds
 			}
-
-			ROS_INFO("Moving to target 1");
-			moveToPose(target_1);
-
-			ROS_INFO("Moving to target 2");
-			moveToPose(target_2);
-
 		} else {
 			ROS_WARN_STREAM("Robot is not connected...");
 			ros::Duration(5.0).sleep(); // 5 seconds
@@ -99,12 +67,33 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	}
 }
 
-void TrajectorySampler::moveToPose(const geometry_msgs::Pose target_pose)
+bool TrajectorySampler::getTargets(geometry_msgs::Pose *target_1, geometry_msgs::Pose *target_2)
 {
-	// set starting pose
-	move_group.setStartStateToCurrentState();
+	bool got_targets = false;
 
-	move_group.setPoseTarget(target_pose);
+	ros::param::get("/target_1_spawn_location/x", target_1->position.x);
+	ros::param::get("/target_1_spawn_location/y", target_1->position.y);
+	ros::param::get("/target_1_spawn_location/z", target_1->position.z);
+	ros::param::get("/target_2_spawn_location/x", target_2->position.x);
+	ros::param::get("/target_2_spawn_location/y", target_2->position.y);
+	ros::param::get("/target_2_spawn_location/z", target_2->position.z);
+
+	target_1->orientation.x = 0.0;
+	target_1->orientation.y = 1.0;
+	target_1->orientation.z = 0.0;
+	target_1->orientation.w = 0.0;
+	target_2->orientation.x = 0.0;
+	target_2->orientation.y = 1.0;
+	target_2->orientation.z = 0.0;
+	target_2->orientation.w = 0.0;
+
+	got_targets = true;
+
+	return got_targets;
+}
+
+void TrajectorySampler::runTrajectory()
+{
 	success_plan = move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
 	ROS_INFO("Planning result: %s",
 		 success_plan ? "SUCCEEDED" : "FAILED");

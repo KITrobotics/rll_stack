@@ -41,7 +41,8 @@ private:
 
 	iiwa_ros::iiwaRos my_iiwa;
 
-	void moveToPose(const geometry_msgs::Pose target_pose);
+	bool getTargets(geometry_msgs::Pose *target_1, geometry_msgs::Pose *target_2);
+	void runTrajectory();
 
 };
 

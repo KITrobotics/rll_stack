@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot" default="iiwa_2" />
+
+  <node ns="$(arg robot)" name="target_spawn" pkg="rll_moveit_testing" type="target_spawn.py" output="screen"/>
+
+</launch>
