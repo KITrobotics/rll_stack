@@ -20,16 +20,19 @@
 
 import rospy
 import docker
+from os.path import expanduser
 
 def start_exp():
     client = docker.from_env()
 
     ns = rospy.get_namespace()
     git_url = "https://gitlab.ipr.kit.edu/rll/moveit_testing_sender.git"
+    exp_id = "test"
 
-    command_string = "bash -c \"catkin_init_workspace && export ROS_NAMESPACE=" + ns + " && git clone " \
-              + git_url + " src/moveit_testing_sender"\
-              + " && catkin build && source devel/setup.bash && rosrun moveit_testing_sender target_spawn.py\""
+    command_string = "bash -c \"catkin_init_workspace && git clone " + git_url \
+              + " src/moveit_testing_sender"\
+              + " && catkin build && source devel/setup.bash" \
+              + " && roslaunch moveit_testing_sender moveit_testing_sender.launch robot:=" + ns + "\""
 
     rospy.loginfo("command string: %s", command_string)
 
@@ -37,7 +40,13 @@ def start_exp():
     #       resources (CPU, memory etc.)
     #       may also need to detach in order to kill container if it runs too long
     #       capture logs from container (from git clone, catkin build, etc.)
-    client.containers.run("rll_exp_env:v1", network_mode="host",command=command_string)
+    exp_logs = client.containers.run("rll_exp_env:v1", network_mode="host",command=command_string)
+
+    rospy.loginfo("\n\ncontainer logs:\n\n%s", exp_logs)
+    log_file = expanduser("~/ros-exp-logs/") + exp_id
+    log_ptr = open(log_file, "w")
+    log_ptr.write(exp_logs)
+    log_ptr.close()
 
 if __name__ == '__main__':
     rospy.init_node('exp_control')
