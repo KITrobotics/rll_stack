@@ -1,5 +1,5 @@
 Docker:
 
-build with "docker build --build-arg ros_master_ip=172.31.1.100 -t rll_exp_env:v1 ."
+build with "docker build --network host --build-arg ros_master_ip=172.31.1.100 -t rll_exp_env:v1 ."
 run for testing with "docker run --net=host -it rll_exp_env:v1"
 
