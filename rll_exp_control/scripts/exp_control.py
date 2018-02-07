@@ -18,15 +18,27 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+import rospy
 import docker
 
 def start_exp():
     client = docker.from_env()
 
+    ns = rospy.get_namespace()
+    git_url = "https://gitlab.ipr.kit.edu/rll/moveit_testing_sender.git"
+
+    command_string = "bash -c \"catkin_init_workspace && export ROS_NAMESPACE=" + ns + " && git clone " \
+              + git_url + " src/moveit_testing_sender"\
+              + " && catkin build && source devel/setup.bash && rosrun moveit_testing_sender target_spawn.py\""
+
+    rospy.loginfo("command string: %s", command_string)
+
     # TODO: don't grant full access to host network and restrict
-    # resources (CPU, memory etc.)
-    client.containers.run("rll_exp_env:v1", network_mode="host",
-                          command='bash -c "catkin_init_workspace && export ROS_NAMESPACE=iiwa_1 && git clone https://gitlab.ipr.kit.edu/rll/moveit_testing_sender.git src/moveit_testing_sender && catkin build && source devel/setup.bash && rosrun moveit_testing_sender target_spawn.py"')
+    #       resources (CPU, memory etc.)
+    #       may also need to detach in order to kill container if it runs too long
+    #       capture logs from container (from git clone, catkin build, etc.)
+    client.containers.run("rll_exp_env:v1", network_mode="host",command=command_string)
 
 if __name__ == '__main__':
+    rospy.init_node('exp_control')
     start_exp()
