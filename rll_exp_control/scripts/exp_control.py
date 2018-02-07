@@ -29,7 +29,7 @@ def start_exp():
     git_url = "https://gitlab.ipr.kit.edu/rll/moveit_testing_sender.git"
     exp_id = "test"
 
-    command_string = "bash -c \"catkin_init_workspace && git clone " + git_url \
+    command_string = "bash -c \"catkin_init_workspace && git clone --progress --verbose " + git_url \
               + " src/moveit_testing_sender"\
               + " && catkin build && source devel/setup.bash" \
               + " && roslaunch moveit_testing_sender moveit_testing_sender.launch robot:=" + ns + "\""
@@ -39,8 +39,7 @@ def start_exp():
     # TODO: don't grant full access to host network and restrict
     #       resources (CPU, memory etc.)
     #       may also need to detach in order to kill container if it runs too long
-    #       capture logs from container (from git clone, catkin build, etc.)
-    exp_logs = client.containers.run("rll_exp_env:v1", network_mode="host",command=command_string)
+    exp_logs = client.containers.run("rll_exp_env:v1", network_mode="host",command=command_string, stderr=True)
 
     rospy.loginfo("\n\ncontainer logs:\n\n%s", exp_logs)
     log_file = expanduser("~/ros-exp-logs/") + exp_id
