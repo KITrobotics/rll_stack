@@ -29,11 +29,7 @@ def start_exp():
     git_url = "https://gitlab.ipr.kit.edu/rll/moveit_testing_sender.git"
     exp_id = "test"
 
-    command_string = "bash -c \"catkin_init_workspace && git clone --progress --verbose " + git_url \
-              + " src/moveit_testing_sender"\
-              + " && catkin build && source devel/setup.bash" \
-              + " && roslaunch moveit_testing_sender moveit_testing_sender.launch robot:=" + ns + "\""
-
+    command_string =  "./run_exp.sh " + git_url + " " + ns
     rospy.loginfo("command string: %s", command_string)
 
     # TODO: don't grant full access to host network and restrict
@@ -42,7 +38,7 @@ def start_exp():
     exp_logs = client.containers.run("rll_exp_env:v1", network_mode="host",command=command_string, stderr=True)
 
     rospy.loginfo("\n\ncontainer logs:\n\n%s", exp_logs)
-    log_file = expanduser("~/ros-exp-logs/") + exp_id
+    log_file = expanduser("~/ros-exp-logs/") + exp_id + ".log"
     log_ptr = open(log_file, "w")
     log_ptr.write(exp_logs)
     log_ptr.close()

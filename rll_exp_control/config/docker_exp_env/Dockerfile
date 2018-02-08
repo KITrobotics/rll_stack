@@ -16,6 +16,7 @@ env ROS_MASTER_URI=http://${ros_master_ip}:11311
 #env ROS_HOSTNAME=exp_container
 #env ROS_IP=${ros_master_ip}
 
-RUN mkdir -p /home/rll_user/ws/src
+RUN mkdir -p /home/rll_user/ws/src/
+COPY ./run_exp.sh /home/rll_user/ws
 
 WORKDIR /home/rll_user/ws
