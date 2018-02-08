@@ -19,45 +19,112 @@
 #
 
 import rospy
+
 import tornado.ioloop
 import tornado.web
 import motor.motor_tornado
-import signal
+from bson.objectid import ObjectId
 
-is_closing = False
+import git
+import signal
+import datetime
+
+app_closing = False
 
 def signal_handler(signum, frame):
-    global is_closing
-    is_closing = True
+    global app_closing
+    app_closing = True
 
 def try_exit():
-    global is_closing
-    if is_closing:
-        # clean up here
+    global app_closing
+    if app_closing:
         tornado.ioloop.IOLoop.instance().stop()
 
 class JobsHandler(tornado.web.RequestHandler):
+    @tornado.web.asynchronous
+    def get(self):
+        operation = self.get_argument("op")
+
+        if operation == "status":
+            self._handle_job_status()
+        else:
+            raise tornado.web.HTTPError(400)
+
+    @tornado.web.asynchronous
     def post(self):
         operation = self.get_argument("op")
 
         if operation == "submit":
-            username = self.get_argument("username")
-            git_url = self.get_argument("git_url")
+            self._handle_submit()
+        else:
+            raise tornado.web.HTTPError(400)
 
-            rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s'", username, git_url)
-        elif operation == "status":
-            job_id = self.get_argument("job")
+    def _handle_job_status(self):
+        job_id = self.get_argument("job")
+        jobs_collection = self.settings['db'].jobs
 
-            rospy.loginfo("got status request for job id '%s'", job_id)
+        rospy.loginfo("got status request for job id '%s'", job_id)
+
+        try:
+            job_obj_id = ObjectId(job_id)
+        except:
+            raise tornado.web.HTTPError(400)
+
+        jobs_collection.find_one({'_id': ObjectId(job_id)}, callback=self._db_job_status_cb)
+
+    def _handle_submit(self):
+        username = self.get_argument("username")
+        git_url = self.get_argument("git_url")
+        jobs_collection = self.settings['db'].jobs
+
+        rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s'", username, git_url)
+
+        if not self._valid_git_url(git_url):
+            return
+
+        job = {"username": username, "git_url": git_url,
+               "status": "submitted", "created": datetime.datetime.now()}
+        jobs_collection.insert_one(job, callback=self._db_job_insert_cb)
+
+    def _valid_git_url(self, git_url):
+        g = git.cmd.Git()
+        try:
+            g.ls_remote(git_url)
+        except:
+            response = {"status": "error", "error": "Git URL invalid"}
+            self.write(response)
+            self.finish()
+            return False
+        return True
+
+    def _db_job_status_cb(self, job, error):
+        rospy.loginfo("jb status db callback with job %s and error %s", job, error)
+
+        if error:
+            raise tornado.web.HTTPError(500, error)
+        else:
+            result = {"status": "success", "job_status": job["status"]}
+            self.write(result)
+            self.finish()
+
+    def _db_job_insert_cb(self, result, error):
+        rospy.loginfo("jb insert db callback with result %s and error %s", result, error)
+
+        if error:
+            raise tornado.web.HTTPError(500, error)
+        else:
+            result = {"status": "success", "job_id": str(result.inserted_id)}
+            self.write(result)
+            self.finish()
 
 if __name__ == '__main__':
     rospy.init_node('rll_server')
     signal.signal(signal.SIGINT, signal_handler)
 
-    db = motor.motor_tornado.MotorClient().test_database
+    db = motor.motor_tornado.MotorClient().rll_test
 
     app = tornado.web.Application([(r"/jobs", JobsHandler)], db=db,
                                   debug = True)
     app.listen(8888)
-    tornado.ioloop.PeriodicCallback(try_exit, 100).start() 
+    tornado.ioloop.PeriodicCallback(try_exit, 100).start()
     tornado.ioloop.IOLoop.current().start()
