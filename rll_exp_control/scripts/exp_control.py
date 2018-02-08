@@ -34,7 +34,7 @@ def start_exp():
 
     # TODO: don't grant full access to host network and restrict
     #       resources (CPU, memory etc.)
-    #       may also need to detach in order to kill container if it runs too long
+    #       may also need to detach in order to be able to kill container if it runs too long
     exp_logs = client.containers.run("rll_exp_env:v1", network_mode="host",command=command_string, stderr=True)
 
     rospy.loginfo("\n\ncontainer logs:\n\n%s", exp_logs)

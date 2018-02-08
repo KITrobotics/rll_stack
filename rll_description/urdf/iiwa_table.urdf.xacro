@@ -41,7 +41,7 @@
   </link>
 
   <!-- virtual walls
-  Every wall is a link which does not collude with a different wall or the collision link of the steel plate -->
+  Every wall is a link which does not collide with a different wall or the collision link of the steel plate -->
   
   <joint name="wall_joint1" type="fixed">
     <parent link="world" />
