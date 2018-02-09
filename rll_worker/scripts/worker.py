@@ -20,14 +20,14 @@
 
 import rospy
 import docker
+from pymongo import MongoClient
 from os.path import expanduser
 
-def start_exp():
-    client = docker.from_env()
+def run_job(jobs_collection, dClient, ns):
+    rospy.loginfo("starting new job")
 
-    ns = rospy.get_namespace()
     git_url = "https://gitlab.ipr.kit.edu/rll/moveit_testing_sender.git"
-    exp_id = "test"
+    job_id = "test"
 
     command_string =  "./run_exp.sh " + git_url + " " + ns
     rospy.loginfo("command string: %s", command_string)
@@ -35,14 +35,20 @@ def start_exp():
     # TODO: don't grant full access to host network and restrict
     #       resources (CPU, memory, disc space etc.)
     #       may also need to detach in order to be able to kill container if it runs too long
-    exp_logs = client.containers.run("rll_exp_env:v1", network_mode="host",command=command_string, stderr=True)
+    job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host",command=command_string, stderr=True)
 
-    rospy.loginfo("\n\ncontainer logs:\n\n%s", exp_logs)
-    log_file = expanduser("~/ros-exp-logs/") + exp_id + ".log"
+    rospy.loginfo("\n\ncontainer logs:\n\n%s", job_logs)
+    log_file = expanduser("~/ros-job-logs/") + job_id + ".log"
     log_ptr = open(log_file, "w")
-    log_ptr.write(exp_logs)
+    log_ptr.write(job_logs)
     log_ptr.close()
 
 if __name__ == '__main__':
-    rospy.init_node('exp_control')
-    start_exp()
+    rospy.init_node('job_worker')
+
+    ns = rospy.get_namespace()
+    jobs_collection = MongoClient().rll_test.jobs
+    dClient = docker.from_env()
+
+    while not rospy.is_shutdown():
+        run_job(jobs_collection, dClient, ns)

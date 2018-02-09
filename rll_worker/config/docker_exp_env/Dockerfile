@@ -1,4 +1,4 @@
-# environment to run experimental code
+# environment to run the experiment's code
 
 FROM ros:kinetic-ros-base-xenial
 

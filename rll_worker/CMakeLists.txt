@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(rll_exp_control)
+project(rll_worker)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -100,7 +100,7 @@ find_package(catkin REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES rll_exp_control
+#  LIBRARIES rll_worker
 #  CATKIN_DEPENDS other_catkin_pkg
 #  DEPENDS system_lib
 )
@@ -118,7 +118,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/rll_exp_control.cpp
+#   src/${PROJECT_NAME}/rll_worker.cpp
 # )
 
 ## Add cmake target dependencies of the library

@@ -1,7 +1,0 @@
-<?xml version="1.0"?>
-<launch>
-  <arg name="robot" default="iiwa_2" />
-
-  <node ns="$(arg robot)" name="exp_control" pkg="rll_exp_control" type="exp_control.py" output="screen"/>
-
-</launch>

@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="robot" default="iiwa_2" />
+
+  <node ns="$(arg robot)" name="rll_worker" pkg="rll_worker" type="worker.py" output="screen"/>
+
+</launch>
