@@ -80,6 +80,7 @@ class JobsHandler(tornado.web.RequestHandler):
         rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s'", username, git_url)
 
         # check if there is already a job in the queue for this user
+        # TODO: try to solve this with indexing
         jobs_collection.find_one({"username": username, "status": "submitted"},
                                  callback=self._db_open_job_cb)
 

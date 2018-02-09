@@ -20,14 +20,28 @@
 
 import rospy
 import docker
-from pymongo import MongoClient
+import pymongo
 from os.path import expanduser
+import datetime
 
 def run_job(jobs_collection, dClient, ns):
-    rospy.loginfo("starting new job")
+    rospy.loginfo("searching new job")
 
-    git_url = "https://gitlab.ipr.kit.edu/rll/moveit_testing_sender.git"
-    job_id = "test"
+    # TODO: use indexing
+    job = jobs_collection.find_one_and_update({"status": "submitted"},
+                                              {"$set": {"status": "running",
+                                                        "job_start": datetime.datetime.now()}},
+                                              sort=[("created", pymongo.ASCENDING)])
+
+    if job == None:
+        rospy.loginfo("no job in queue")
+        rospy.sleep(5.)
+        return
+
+    job_id = job["_id"]
+    git_url = job["git_url"]
+
+    rospy.loginfo("got job with id '%s', Git URL '%s' and create date %s", job_id, git_url,str(job["created"]))
 
     command_string =  "./run_exp.sh " + git_url + " " + ns
     rospy.loginfo("command string: %s", command_string)
@@ -38,16 +52,19 @@ def run_job(jobs_collection, dClient, ns):
     job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host",command=command_string, stderr=True)
 
     rospy.loginfo("\n\ncontainer logs:\n\n%s", job_logs)
-    log_file = expanduser("~/ros-job-logs/") + job_id + ".log"
+    log_file = expanduser("~/ros-job-logs/") + str(job_id) + ".log"
     log_ptr = open(log_file, "w")
     log_ptr.write(job_logs)
     log_ptr.close()
+
+    jobs_collection.find_one_and_update({"_id": job_id},
+                                        {"$set": {"job_end": datetime.datetime.now()}})
 
 if __name__ == '__main__':
     rospy.init_node('job_worker')
 
     ns = rospy.get_namespace()
-    jobs_collection = MongoClient().rll_test.jobs
+    jobs_collection = pymongo.MongoClient().rll_test.jobs
     dClient = docker.from_env()
 
     while not rospy.is_shutdown():
