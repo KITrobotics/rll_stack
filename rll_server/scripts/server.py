@@ -70,7 +70,7 @@ class JobsHandler(tornado.web.RequestHandler):
         except:
             raise tornado.web.HTTPError(400)
 
-        jobs_collection.find_one({'_id': ObjectId(job_id)}, callback=self._db_job_status_cb)
+        jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_status_cb)
 
     def _handle_submit(self):
         username = self.get_argument("username")
@@ -79,9 +79,27 @@ class JobsHandler(tornado.web.RequestHandler):
 
         rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s'", username, git_url)
 
+        # check if there is already a job in the queue for this user
+        jobs_collection.find_one({"username": username, "status": "submitted"},
+                                 callback=self._db_open_job_cb)
+
+    def _db_open_job_cb(self, job, error):
+        rospy.loginfo("db open job callback with job %s and error %s", job, error)
+
+        if error:
+            raise tornado.web.HTTPError(500, error)
+        elif not job == None:
+            response = {"status": "error", "error": "User has a job in the queue"}
+            self.write(response)
+            self.finish()
+            return
+
+        git_url = self.get_argument("git_url")
         if not self._valid_git_url(git_url):
             return
 
+        jobs_collection = self.settings['db'].jobs
+        username = self.get_argument("username")
         job = {"username": username, "git_url": git_url,
                "status": "submitted", "created": datetime.datetime.now()}
         jobs_collection.insert_one(job, callback=self._db_job_insert_cb)
@@ -98,7 +116,7 @@ class JobsHandler(tornado.web.RequestHandler):
         return True
 
     def _db_job_status_cb(self, job, error):
-        rospy.loginfo("jb status db callback with job %s and error %s", job, error)
+        rospy.loginfo("job status db callback with job %s and error %s", job, error)
 
         if error:
             raise tornado.web.HTTPError(500, error)
@@ -108,7 +126,7 @@ class JobsHandler(tornado.web.RequestHandler):
             self.finish()
 
     def _db_job_insert_cb(self, result, error):
-        rospy.loginfo("jb insert db callback with result %s and error %s", result, error)
+        rospy.loginfo("job insert db callback with result %s and error %s", result, error)
 
         if error:
             raise tornado.web.HTTPError(500, error)
