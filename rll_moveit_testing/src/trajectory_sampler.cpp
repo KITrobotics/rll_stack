@@ -50,11 +50,7 @@ bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
 			move_group.setPoseTarget(target_2);
 			runTrajectory();
 
-			ROS_INFO("Moving back to home");
-			move_group.setStartStateToCurrentState();
-			move_group.setNamedTarget("home_bow");
-			runTrajectory();
-			
+			resetToHome();
 			// reset after one run
 			ros::param::set("target_pos_set", false);
 			resp.job.status = rll_worker::JobStatus::SUCCESS;

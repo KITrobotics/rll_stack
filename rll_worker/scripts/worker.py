@@ -25,9 +25,10 @@ from os.path import expanduser
 import datetime
 
 from rll_worker.srv import *
+from rll_worker.msg import *
 
 def run_job(jobs_collection, dClient, ns):
-    rospy.loginfo("searching for new job")
+    rospy.loginfo("searching for new job in namespace '%s'", ns)
 
     # TODO: use indexing
     job = jobs_collection.find_one_and_update({"status": "submitted"},
@@ -76,7 +77,16 @@ def run_job(jobs_collection, dClient, ns):
 
     # TODO: also set status
     jobs_collection.find_one_and_update({"_id": job_id},
-                                        {"$set": {"job_end": datetime.datetime.now()}})
+                                        {"$set": {"status": "finished",
+                                                  "job_end": datetime.datetime.now(),
+                                                  "job_result": job_result_codes_to_string(resp.job.status)}})
+
+    rospy.loginfo("finished job with id '%s' in namespace '%s'", job_id, ns)
+
+def job_result_codes_to_string(status):
+    job_codes = {JobStatus.SUCCESS: "success", JobStatus.FAILURE: "failure",
+                 JobStatus.INTERNAL_ERROR: "internal error"}
+    return job_codes.get(status, "unknown")
 
 if __name__ == '__main__':
     rospy.init_node('job_worker')

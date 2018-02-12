@@ -1,7 +1,16 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="robot" default="iiwa_2" />
+  <arg name="all_robots" default="false" />
+  <arg unless="$(arg all_robots)" name="robot" default="iiwa_2" />
 
-  <node ns="$(arg robot)" name="rll_worker" pkg="rll_worker" type="worker.py" output="screen"/>
+  <group if="$(arg all_robots)">
+    <node ns="iiwa_1" name="rll_worker" pkg="rll_worker" type="worker.py" output="screen">
+    </node>
+
+    <node ns="iiwa_2" name="rll_worker" pkg="rll_worker" type="worker.py" output="screen">
+    </node>
+  </group>
+
+  <node unless="$(arg all_robots)" ns="$(arg robot)" name="rll_worker" pkg="rll_worker" type="worker.py" output="screen"/>
 
 </launch>
