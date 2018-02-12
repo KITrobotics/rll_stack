@@ -31,17 +31,19 @@ class TrajectorySampler
 public:
 	explicit TrajectorySampler(ros::NodeHandle nh);
 	bool run_job(rll_worker::JobEnv::Request &req, rll_worker::JobEnv::Response &resp);
+	void resetToHome();
+
 	~TrajectorySampler();
   
 private:
 	const std::string PLANNING_GROUP = "manipulator";
-
+	moveit::planning_interface::MoveGroupInterface move_group;
 	geometry_msgs::Pose target_1, target_2;
 
 	iiwa_ros::iiwaRos my_iiwa;
 
-	bool getTargets(geometry_msgs::Pose *target_1, geometry_msgs::Pose *target_2);
-	void runTrajectory(moveit::planning_interface::MoveGroupInterface *move_group);
+	bool getTargets();
+	void runTrajectory();
 };
 
 #endif  // RLL_TRAJECTORY_SAMPLER_H
