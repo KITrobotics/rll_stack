@@ -24,8 +24,10 @@ import pymongo
 from os.path import expanduser
 import datetime
 
+from rll_worker.srv import *
+
 def run_job(jobs_collection, dClient, ns):
-    rospy.loginfo("searching new job")
+    rospy.loginfo("searching for new job")
 
     # TODO: use indexing
     job = jobs_collection.find_one_and_update({"status": "submitted"},
@@ -41,7 +43,8 @@ def run_job(jobs_collection, dClient, ns):
     job_id = job["_id"]
     git_url = job["git_url"]
 
-    rospy.loginfo("got job with id '%s', Git URL '%s' and create date %s", job_id, git_url,str(job["created"]))
+    rospy.loginfo("got job with id '%s', Git URL '%s' and create date %s", job_id, git_url,
+                  str(job["created"]))
 
     command_string =  "./run_exp.sh " + git_url + " " + ns
     rospy.loginfo("command string: %s", command_string)
@@ -49,7 +52,21 @@ def run_job(jobs_collection, dClient, ns):
     # TODO: don't grant full access to host network and restrict
     #       resources (CPU, memory, disc space etc.)
     #       may also need to detach in order to be able to kill container if it runs too long
-    job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host",command=command_string, stderr=True)
+    job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host",command=command_string,
+                                      stderr=True)
+
+    rospy.wait_for_service("job_env")
+    try:
+        job_env = rospy.ServiceProxy('job_env', JobEnv)
+        resp = job_env(True)
+        rospy.loginfo("successfully run job environment with job status %d", resp.job.status)
+    except rospy.ServiceException, e:
+        rospy.loginfo("service call failed: %s", e)
+        # reset the job and run it later again
+        # TODO: be more transparent about this by using a different status code
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "submitted"}})
+        return
 
     rospy.loginfo("\n\ncontainer logs:\n\n%s", job_logs)
     log_file = expanduser("~/ros-job-logs/") + str(job_id) + ".log"
@@ -57,6 +74,7 @@ def run_job(jobs_collection, dClient, ns):
     log_ptr.write(job_logs)
     log_ptr.close()
 
+    # TODO: also set status
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"job_end": datetime.datetime.now()}})
 

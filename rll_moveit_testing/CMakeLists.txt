@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_core 
   moveit_ros_planning
   moveit_ros_planning_interface
+  rll_worker
 )
 
 ## System dependencies are found with CMake's conventions
@@ -106,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rll_moveit_testing
-#  CATKIN_DEPENDS other_catkin_pkg
+   CATKIN_DEPENDS rll_worker
 #  DEPENDS system_lib
 )
 

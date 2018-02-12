@@ -20,51 +20,59 @@
 #include <trajectory_sampler.h>
 
 TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
-	: move_group(PLANNING_GROUP)
 {
-	bool target_set;
-	geometry_msgs::Pose target_1, target_2;
-
 	my_iiwa.init();
+}
 
+bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
+				rll_worker::JobEnv::Response &resp)
+{
+	ROS_INFO("got job running request");
 	// configure planner
+	moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
 	move_group.setPlannerId("RRTConnectkConfigDefault");
 	move_group.setPlanningTime(10.0);
-
 	// slow down movement of the robot
 	move_group.setMaxVelocityScalingFactor(0.1);
 
-	while (ros::ok()) {
-		if (my_iiwa.getRobotIsConnected()) {
+	bool target_set;
 
-			ROS_INFO("Moving to home");
+	if (my_iiwa.getRobotIsConnected()) {
+		ROS_INFO("Moving to home");
+		move_group.setStartStateToCurrentState();
+		move_group.setNamedTarget("home_bow");
+		runTrajectory(&move_group);
+
+		ros::param::get("target_pos_set", target_set);
+		if (target_set && getTargets(&target_1, &target_2)) {
+			ROS_INFO("Moving to target 1");
+			move_group.setStartStateToCurrentState();
+			move_group.setPoseTarget(target_1);
+			runTrajectory(&move_group);
+
+			ROS_INFO("Moving to target 2");
+			move_group.setStartStateToCurrentState();
+			move_group.setPoseTarget(target_2);
+			runTrajectory(&move_group);
+
+			ROS_INFO("Moving back to home");
 			move_group.setStartStateToCurrentState();
 			move_group.setNamedTarget("home_bow");
-			runTrajectory();
-
-			ros::param::get("target_pos_set", target_set);
-			if (target_set && getTargets(&target_1, &target_2)) {
-				ROS_INFO("Moving to target 1");
-				move_group.setStartStateToCurrentState();
-				move_group.setPoseTarget(target_1);
-				runTrajectory();
-
-				ROS_INFO("Moving to target 2");
-				move_group.setStartStateToCurrentState();
-				move_group.setPoseTarget(target_2);
-				runTrajectory();
-
-				// reset after one run
-				ros::param::set("target_pos_set", false);
-			} else {
-				ROS_WARN("No target set or unable to get target");
-				ros::Duration(5.0).sleep(); // 5 seconds
-			}
+			runTrajectory(&move_group);
+			
+			// reset after one run
+			ros::param::set("target_pos_set", false);
+			resp.job.status = rll_worker::JobStatus::SUCCESS;
 		} else {
-			ROS_WARN_STREAM("Robot is not connected...");
-			ros::Duration(5.0).sleep(); // 5 seconds
+			ROS_WARN("No target set or unable to get target");
+			resp.job.status = rll_worker::JobStatus::FAILURE;
 		}
+	} else {
+		ROS_WARN_STREAM("Robot is not connected...");
+		resp.job.status = rll_worker::JobStatus::INTERNAL_ERROR;
 	}
+
+	return true;
 }
 
 bool TrajectorySampler::getTargets(geometry_msgs::Pose *target_1, geometry_msgs::Pose *target_2)
@@ -92,14 +100,17 @@ bool TrajectorySampler::getTargets(geometry_msgs::Pose *target_1, geometry_msgs:
 	return got_targets;
 }
 
-void TrajectorySampler::runTrajectory()
+void TrajectorySampler::runTrajectory(moveit::planning_interface::MoveGroupInterface *move_group)
 {
-	success_plan = move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+	bool success_plan;
+
+	success_plan = move_group->plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
 	ROS_INFO("Planning result: %s",
 		 success_plan ? "SUCCEEDED" : "FAILED");
 
 	if (success_plan) {
-		success_plan = move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+		success_plan = move_group->execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
 		ROS_INFO("Plan execution result: %s",
 			 success_plan ? "SUCCEEDED" : "FAILED");
 
@@ -118,11 +129,15 @@ int main (int argc, char **argv)
 	ros::init(argc, argv, "trajectory_sampler");
 	ros::NodeHandle nh;
 
-	// ROS spinner.
-	ros::AsyncSpinner spinner(1);
+	// ROS spinner
+	ros::AsyncSpinner spinner(0);
 	spinner.start();
 
 	TrajectorySampler plan_sampler(nh);
+	ros::ServiceServer service = nh.advertiseService("job_env", &TrajectorySampler::run_job, &plan_sampler);
+	ROS_INFO("Trajectory Sampler started");
+
+	ros::waitForShutdown();
 
 	return 0;
 }

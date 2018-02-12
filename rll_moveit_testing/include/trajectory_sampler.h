@@ -21,29 +21,27 @@
 #define RLL_TRAJECTORY_SAMPLER_H
 
 #include <ros/ros.h>
-
 #include <iiwa_ros.h>
 
+#include <rll_worker/JobEnv.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 
 class TrajectorySampler
 {
 public:
 	explicit TrajectorySampler(ros::NodeHandle nh);
+	bool run_job(rll_worker::JobEnv::Request &req, rll_worker::JobEnv::Response &resp);
 	~TrajectorySampler();
   
 private:
 	const std::string PLANNING_GROUP = "manipulator";
 
-	moveit::planning_interface::MoveGroupInterface move_group;
-	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-	bool success_plan;
+	geometry_msgs::Pose target_1, target_2;
 
 	iiwa_ros::iiwaRos my_iiwa;
 
 	bool getTargets(geometry_msgs::Pose *target_1, geometry_msgs::Pose *target_2);
-	void runTrajectory();
-
+	void runTrajectory(moveit::planning_interface::MoveGroupInterface *move_group);
 };
 
 #endif  // RLL_TRAJECTORY_SAMPLER_H
