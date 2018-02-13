@@ -9,7 +9,7 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   iiwa_ros
-  moveit_core 
+  moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
   rll_worker
@@ -107,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rll_moveit_testing
-   CATKIN_DEPENDS rll_worker
+   CATKIN_DEPENDS rll_worker iiwa_ros
 #  DEPENDS system_lib
 )
 
