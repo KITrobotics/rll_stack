@@ -1,25 +1,39 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Robot Learning Lab Test Page</title>
     <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
     <meta content="utf-8" http-equiv="encoding">
+    <title>Robot Learning Lab Test Page</title>
+
+        <link rel="stylesheet" href="./static/css/style.css">
   </head>
 
   <body>
 
-    <form action="http://localhost:8888/jobs" method="post">
-      <fieldset>
-        <input type="hidden" name="op" value="submit" />
-        Username:<br>
-        <input type="text" name="username" placeholder="Your username" />
-        <br>
-        Git repo URL:<br>
-        <input type="text" name="git_url" placeholder="Your Git repo URL" />
-        <br><br>
-        <input type="submit" value="Submit" />
-      </fieldset>
-    </form> 
+    <div id="page-wrapper">
+      <h1>Robot Learning Lab Test Page</h1>
+
+      <div id="submission-messages"></div>
+      <div id="job-id-div"></div>
+      <div id="status-messages"></div>
+
+      <form id="submit-form" action="http://localhost:8888/jobs" method="post">
+        <fieldset>
+          <input type="hidden" name="op" value="submit" required>
+          Username:<br>
+          <input id="username" type="text" name="username" placeholder="Your username">
+          <br>
+          Git repo URL:<br>
+          <input id="repo_url" type="text" name="git_url" placeholder="Your Git repo URL">
+          <br><br>
+          <input type="submit" value="Submit" />
+        </fieldset>
+      </form>
+
+    </div>
+
+    <script src="./static/js/jquery-3.3.1.min.js"></script>
+    <script src="./static/js/testpage.js"></script>
 
   </body>
 </html>
