@@ -22,6 +22,7 @@ import rospy
 
 import tornado.ioloop
 import tornado.web
+from tornado.escape import json_encode
 import motor.motor_tornado
 from bson.objectid import ObjectId
 
@@ -41,6 +42,10 @@ def try_exit():
         tornado.ioloop.IOLoop.instance().stop()
 
 class JobsHandler(tornado.web.RequestHandler):
+    def set_default_headers(self):
+        # TODO: maybe do this more fine-grained?
+        self.set_header("Access-Control-Allow-Origin", "*")
+
     @tornado.web.asynchronous
     def get(self):
         operation = self.get_argument("op")
@@ -91,7 +96,7 @@ class JobsHandler(tornado.web.RequestHandler):
             raise tornado.web.HTTPError(500, error)
         elif not job == None:
             response = {"status": "error", "error": "User has a job in the queue"}
-            self.write(response)
+            self.write(json_encode(response))
             self.finish()
             return
 
@@ -111,7 +116,7 @@ class JobsHandler(tornado.web.RequestHandler):
             g.ls_remote(git_url)
         except:
             response = {"status": "error", "error": "Git URL invalid"}
-            self.write(response)
+            self.write(json_encode(response))
             self.finish()
             return False
         return True
@@ -123,7 +128,7 @@ class JobsHandler(tornado.web.RequestHandler):
             raise tornado.web.HTTPError(500, error)
         else:
             result = {"status": "success", "job_status": job["status"]}
-            self.write(result)
+            self.write(json_encode(result))
             self.finish()
 
     def _db_job_insert_cb(self, result, error):
@@ -133,7 +138,7 @@ class JobsHandler(tornado.web.RequestHandler):
             raise tornado.web.HTTPError(500, error)
         else:
             result = {"status": "success", "job_id": str(result.inserted_id)}
-            self.write(result)
+            self.write(json_encode(result))
             self.finish()
 
 if __name__ == '__main__':
