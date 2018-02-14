@@ -52,6 +52,8 @@ class JobsHandler(tornado.web.RequestHandler):
 
         if operation == "status":
             self._handle_job_status()
+        elif operation == "logs":
+            self._handle_logs_req()
         else:
             raise tornado.web.HTTPError(400)
 
@@ -76,6 +78,19 @@ class JobsHandler(tornado.web.RequestHandler):
             raise tornado.web.HTTPError(400)
 
         jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_status_cb)
+
+    def _handle_logs_req(self):
+        job_id = self.get_argument("job")
+        jobs_collection = self.settings['db'].jobs
+
+        rospy.loginfo("got log request for job id '%s'", job_id)
+
+        try:
+            job_obj_id = ObjectId(job_id)
+        except:
+            raise tornado.web.HTTPError(400)
+
+        jobs_collection.find_one({"_id": ObjectId(job_id), "status": "finished"}, callback=self._db_job_logs_cb)
 
     def _handle_submit(self):
         username = self.get_argument("username")
@@ -127,9 +142,28 @@ class JobsHandler(tornado.web.RequestHandler):
         if error:
             raise tornado.web.HTTPError(500, error)
         else:
-            result = {"status": "success", "job_status": job["status"]}
+            result = self._build_status_resp(job)
             self.write(json_encode(result))
             self.finish()
+
+    def _db_job_logs_cb(self, job, error):
+        rospy.loginfo("job log db callback with job %s and error %s", job, error)
+        if error:
+            result = {"status": "error", "error": "No finished job with this ID"}
+        else:
+            result = {"status": "success", "log_url": "http://localhost/logs/" + str(job["_id"])}
+
+        self.write(json_encode(result))
+        self.finish()
+
+    def _build_status_resp(self, job):
+        job_status = job["status"]
+        result = {"status": "success", "job_status": job_status}
+
+        if job_status == "finished":
+            result["job_result"] = job["job_result"]
+
+        return result
 
     def _db_job_insert_cb(self, result, error):
         rospy.loginfo("job insert db callback with result %s and error %s", result, error)

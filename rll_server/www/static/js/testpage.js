@@ -6,6 +6,7 @@ $(function() {
     var subMessages = $("#submission-messages");
     var jobMessages = $("#status-messages");
     var jobIDdiv = $("#job-id-div");
+    var logsDownload = $("#logs-download");
 
 
     // Set up an event listener for the submit form
@@ -34,6 +35,7 @@ $(function() {
                 $(jobMessages).removeClass("success");
                 $(jobMessages).removeClass("error");
                 $(jobMessages).text("");
+                $(logsDownload).removeClass("success");
 
                 if (obj.status == "success") {
                     $(subMessages).removeClass("error");
@@ -64,26 +66,39 @@ $(function() {
 
         $(jobIDdiv).addClass("success");
         $(jobIDdiv).text("Job ID: " + job_id);
-        
+
         (function poll(job_id, job_done_or_error) {
             setTimeout(function() {
+                var job_status;
                 $.getJSON("http://localhost:8888/jobs?op=status&job=" + job_id, function(obj) {
                     if (obj.status == "success") {
                         $(jobMessages).addClass("success");
-                        $(jobMessages).text("Status: " + obj.job_status);
+                        job_status = "Status: " + obj.job_status;
                     } else if (obj.status == "error") {
                         $(jobMessages).addClass("error");
-                        $(jobMessages).text(obj.error);
+                        job_status = obj.error;
                         job_done_or_error = true;
                     }
 
-                    if (obj.job_status == "finished")
+                    if (obj.job_status == "finished") {
+                        job_status += "; Job Result: " + obj.job_result;
+                        advertise_logs(job_id);
                         job_done_or_error = true;
+                    }
+
+                    $(jobMessages).text(job_status);
 
                     if (!job_done_or_error)
                         poll(job_id, job_done_or_error);
                 });
             }, 1000);
         })(job_id, job_done_or_error);
+    };
+
+    function advertise_logs(job_id) {
+        $.getJSON("http://localhost:8888/jobs?op=logs&job=" + job_id, function(obj) {
+            $(logsDownload).addClass("success");
+            $(logsDownload).text("Logs URL: " + obj.log_url);
+        });
     };
 });
