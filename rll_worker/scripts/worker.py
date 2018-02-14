@@ -28,17 +28,18 @@ from rll_worker.srv import *
 from rll_worker.msg import *
 
 def run_job(jobs_collection, dClient, ns):
-    rospy.loginfo("searching for new job in namespace '%s'", ns)
+    # rospy.loginfo("searching for new job in namespace '%s'", ns)
 
     # TODO: use indexing
     job = jobs_collection.find_one_and_update({"status": "submitted"},
                                               {"$set": {"status": "running",
+                                                        "ns": ns,
                                                         "job_start": datetime.datetime.now()}},
                                               sort=[("created", pymongo.ASCENDING)])
 
     if job == None:
-        rospy.loginfo("no job in queue")
-        rospy.sleep(5.)
+        # rospy.loginfo("no job in queue")
+        rospy.sleep(1.)
         return
 
     job_id = job["_id"]
@@ -50,11 +51,20 @@ def run_job(jobs_collection, dClient, ns):
     command_string =  "./run_exp.sh " + git_url + " " + ns
     rospy.loginfo("command string: %s", command_string)
 
-    # TODO: don't grant full access to host network and restrict
-    #       resources (CPU, memory, disc space etc.)
-    #       may also need to detach in order to be able to kill container if it runs too long
-    job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host",command=command_string,
+    try:
+        # TODO: don't grant full access to host network and restrict
+        #       resources (CPU, memory, disc space etc.)
+        #       may also need to detach in order to be able to kill container if it runs too long
+        job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host",command=command_string,
                                       stderr=True)
+    except:
+        rospy.logerr("failed to run container")
+        # TODO: try to provide more details for this case (logs etc.?)
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "finished",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "failed"}})
+        return
 
     rospy.wait_for_service("job_env")
     try:
