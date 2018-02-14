@@ -23,7 +23,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	: move_group(PLANNING_GROUP)
 {
 	// configure planner
-	move_group.setPlannerId("RRTConnectkConfigDefault");
+	move_group.setPlannerId(PLANNING_GROUP+"[RRTConnectkConfigDefault]");
 	move_group.setPlanningTime(10.0);
 	// slow down movement of the robot
 	move_group.setMaxVelocityScalingFactor(0.1);
@@ -40,12 +40,14 @@ bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
 	if (my_iiwa.getRobotIsConnected()) {
 		ros::param::get("target_pos_set", target_set);
 		if (target_set && getTargets()) {
-			ROS_INFO("Moving to target 1");
+			ROS_INFO("Moving to target 1: x %.2f, y %.2f, z %.2f", target_1.position.x, target_1.position.y,
+				 target_1.position.z);
 			move_group.setStartStateToCurrentState();
 			move_group.setPoseTarget(target_1);
 			runTrajectory();
 
-			ROS_INFO("Moving to target 2");
+			ROS_INFO("Moving to target 2: x %.2f, y %.2f, z %.2f", target_2.position.x, target_2.position.y,
+				 target_2.position.z);
 			move_group.setStartStateToCurrentState();
 			move_group.setPoseTarget(target_2);
 			runTrajectory();
@@ -70,12 +72,12 @@ bool TrajectorySampler::getTargets()
 {
 	bool got_targets = false;
 
-	ros::param::get("/target_1_spawn_location/x", target_1.position.x);
-	ros::param::get("/target_1_spawn_location/y", target_1.position.y);
-	ros::param::get("/target_1_spawn_location/z", target_1.position.z);
-	ros::param::get("/target_2_spawn_location/x", target_2.position.x);
-	ros::param::get("/target_2_spawn_location/y", target_2.position.y);
-	ros::param::get("/target_2_spawn_location/z", target_2.position.z);
+	ros::param::get("target_1_spawn_location/x", target_1.position.x);
+	ros::param::get("target_1_spawn_location/y", target_1.position.y);
+	ros::param::get("target_1_spawn_location/z", target_1.position.z);
+	ros::param::get("target_2_spawn_location/x", target_2.position.x);
+	ros::param::get("target_2_spawn_location/y", target_2.position.y);
+	ros::param::get("target_2_spawn_location/z", target_2.position.z);
 
 	target_1.orientation.x = 0.0;
 	target_1.orientation.y = 1.0;
@@ -96,12 +98,12 @@ void TrajectorySampler::runTrajectory()
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 	bool success_plan;
 
-	success_plan = move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+	success_plan = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 	ROS_INFO("Planning result: %s",
 		 success_plan ? "SUCCEEDED" : "FAILED");
 
 	if (success_plan) {
-		success_plan = move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS;
+		success_plan = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 		ROS_INFO("Plan execution result: %s",
 			 success_plan ? "SUCCEEDED" : "FAILED");
 

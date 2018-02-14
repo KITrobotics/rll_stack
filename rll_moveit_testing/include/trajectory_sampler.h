@@ -21,7 +21,7 @@
 #define RLL_TRAJECTORY_SAMPLER_H
 
 #include <ros/ros.h>
-#include <iiwa_ros.h>
+#include <iiwa_ros/iiwa_ros.h>
 
 #include <rll_worker/JobEnv.h>
 #include <moveit/move_group_interface/move_group_interface.h>
