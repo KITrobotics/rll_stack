@@ -27,15 +27,7 @@ $(function() {
                 var obj = JSON.parse(response);
 
                 // Clear the form and status divs
-                $("#username").val("");
-                $("#repo_url").val("");
-                $(jobIDdiv).removeClass("success");
-                $(jobIDdiv).removeClass("error");
-                $(jobIDdiv).text("")
-                $(jobMessages).removeClass("success");
-                $(jobMessages).removeClass("error");
-                $(jobMessages).text("");
-                $(logsDownload).removeClass("button");
+                clear_page();
 
                 if (obj.status == "success") {
                     $(subMessages).removeClass("error");
@@ -98,21 +90,26 @@ $(function() {
     function advertise_logs(job_id) {
         $.getJSON("http://localhost:8888/jobs?op=logs&job=" + job_id, function(obj) {
             $(logsDownload).addClass("log_link");
-            // var dl_button = document.createElement("button");
             var link = document.createElement("a");
-            // link.addClass("log_link");
             link.innerHTML = "Download Log";
             link.href = obj.log_url;
             link.download = "job.log";
 
-            // link.addEventListener("click", function(ev) {
-            //     link.href = obj.log_url;
-            //     link.download = "job.log";
-            // }, false);
             var download_div = document.getElementById("logs-download");
-            // dl_button.appendChild(link);
             download_div.appendChild(link);
-            // $(logsDownload).text("Logs URL: " + obj.log_url);
         });
+    };
+
+    function clear_page() {
+        $("#username").val("");
+        $("#repo_url").val("");
+        $(jobIDdiv).removeClass("success");
+        $(jobIDdiv).removeClass("error");
+        $(jobIDdiv).text("")
+        $(jobMessages).removeClass("success");
+        $(jobMessages).removeClass("error");
+        $(jobMessages).text("");
+        $(logsDownload).removeClass("log_link");
+        $(logsDownload).text("");
     };
 });
