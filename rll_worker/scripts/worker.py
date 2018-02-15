@@ -21,7 +21,6 @@
 import rospy
 import docker
 import pymongo
-from os.path import expanduser
 import datetime
 
 from rll_worker.srv import *
@@ -74,16 +73,18 @@ def run_job(jobs_collection, dClient, ns):
     except rospy.ServiceException, e:
         rospy.loginfo("service call failed: %s", e)
         # reset the job and run it later again
-        # TODO: be more transparent about this by using a different status code
+        # TODO: be more transparent about this by using a different status code or by improving
+        #       the job run script
         jobs_collection.find_one_and_update({"_id": job_id},
                                             {"$set": {"status": "submitted"}})
         return
 
     rospy.loginfo("\n\ncontainer logs:\n\n%s", job_logs)
-    log_file = expanduser("~/ros-job-logs/") + str(job_id) + ".log"
+    log_file = "/home/rll/logs/test/" + str(job_id) + ".log"
     log_ptr = open(log_file, "w")
     log_ptr.write(job_logs)
     log_ptr.close()
+    rospy.loginfo("wrote logs to disk")
 
     # TODO: also set status
     jobs_collection.find_one_and_update({"_id": job_id},

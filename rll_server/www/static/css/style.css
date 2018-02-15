@@ -57,7 +57,7 @@ textarea {
   border: 1px solid #D9D9D9;
 }
 
-button {
+button, .log_link {
   display: inline-block;
   border-radius: 3px;
   border: none;
@@ -73,12 +73,12 @@ button {
   text-align: center;
 }
 
-button:hover, button:focus {
+button:hover, .log_link:hover, button:focus, .log_link:focus {
   opacity: 0.75;
   cursor: pointer;
 }
 
-button:active {
+button:active, .log_link:active {
   opacity: 1;
   box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.1) inset;
 }

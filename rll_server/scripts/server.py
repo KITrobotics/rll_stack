@@ -151,7 +151,7 @@ class JobsHandler(tornado.web.RequestHandler):
         if error:
             result = {"status": "error", "error": "No finished job with this ID"}
         else:
-            result = {"status": "success", "log_url": "http://localhost/logs/" + str(job["_id"])}
+            result = {"status": "success", "log_url": "http://localhost/logs/" + str(job["_id"]) + ".log"}
 
         self.write(json_encode(result))
         self.finish()
