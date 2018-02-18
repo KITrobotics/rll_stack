@@ -20,3 +20,8 @@
 4. Source the workspace:
 
     `source devel/setup.bash`
+
+## Dependencies
+
+The server and worker need recent versions of the Docker and Motor Python libraries.
+Both of them can be installed using ```pip```.
