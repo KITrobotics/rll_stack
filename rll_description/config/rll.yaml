@@ -1,0 +1,6 @@
+db_name: rll_test
+
+logs_base_url: http://localhost/logs
+logs_save_dir: /home/rll/logs/test
+
+secret: SET_YOUR_SECRET_HERE

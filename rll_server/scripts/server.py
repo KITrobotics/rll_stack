@@ -19,6 +19,8 @@
 #
 
 import rospy
+import rospkg
+import yaml
 
 import tornado.ioloop
 import tornado.web
@@ -42,6 +44,10 @@ def try_exit():
         tornado.ioloop.IOLoop.instance().stop()
 
 class JobsHandler(tornado.web.RequestHandler):
+    def initialize(self, db, rll_settings):
+        self.jobs_collection = db.jobs
+        self.rll_settings = rll_settings
+
     def set_default_headers(self):
         # TODO: maybe do this more fine-grained?
         self.set_header("Access-Control-Allow-Origin", "*")
@@ -68,7 +74,6 @@ class JobsHandler(tornado.web.RequestHandler):
 
     def _handle_job_status(self):
         job_id = self.get_argument("job")
-        jobs_collection = self.settings['db'].jobs
 
         rospy.loginfo("got status request for job id '%s'", job_id)
 
@@ -77,11 +82,10 @@ class JobsHandler(tornado.web.RequestHandler):
         except:
             raise tornado.web.HTTPError(400)
 
-        jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_status_cb)
+        self.jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_status_cb)
 
     def _handle_logs_req(self):
         job_id = self.get_argument("job")
-        jobs_collection = self.settings['db'].jobs
 
         rospy.loginfo("got log request for job id '%s'", job_id)
 
@@ -90,18 +94,21 @@ class JobsHandler(tornado.web.RequestHandler):
         except:
             raise tornado.web.HTTPError(400)
 
-        jobs_collection.find_one({"_id": ObjectId(job_id), "status": "finished"}, callback=self._db_job_logs_cb)
+        self.jobs_collection.find_one({"_id": ObjectId(job_id), "status": "finished"}, callback=self._db_job_logs_cb)
 
     def _handle_submit(self):
         username = self.get_argument("username")
+        secret = self.get_argument("secret")
         git_url = self.get_argument("git_url")
-        jobs_collection = self.settings['db'].jobs
 
         rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s'", username, git_url)
 
+        if not secret == self.rll_settings["secret"]:
+            raise tornado.web.HTTPError(401)
+
         # check if there is already a job in the queue for this user
         # TODO: try to solve this with indexing
-        jobs_collection.find_one({"username": username, "status": {"$in": ["submitted", "running"]}},
+        self.jobs_collection.find_one({"username": username, "status": {"$in": ["submitted", "running"]}},
                                  callback=self._db_open_job_cb)
 
     def _db_open_job_cb(self, job, error):
@@ -119,11 +126,10 @@ class JobsHandler(tornado.web.RequestHandler):
         if not self._valid_git_url(git_url):
             return
 
-        jobs_collection = self.settings['db'].jobs
         username = self.get_argument("username")
         job = {"username": username, "git_url": git_url,
                "status": "submitted", "created": datetime.datetime.now()}
-        jobs_collection.insert_one(job, callback=self._db_job_insert_cb)
+        self.jobs_collection.insert_one(job, callback=self._db_job_insert_cb)
 
     def _valid_git_url(self, git_url):
         g = git.cmd.Git()
@@ -151,7 +157,7 @@ class JobsHandler(tornado.web.RequestHandler):
         if error:
             result = {"status": "error", "error": "No finished job with this ID"}
         else:
-            result = {"status": "success", "log_url": "http://localhost/logs/" + str(job["_id"]) + ".log"}
+            result = {"status": "success", "log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + ".log"}
 
         self.write(json_encode(result))
         self.finish()
@@ -179,9 +185,18 @@ if __name__ == '__main__':
     rospy.init_node('rll_server')
     signal.signal(signal.SIGINT, signal_handler)
 
-    db = motor.motor_tornado.MotorClient().rll_test
+    # settings
+    rospack = rospkg.RosPack()
+    config_path = rospack.get_path('rll_description') + "/config/rll.yaml"
+    with open(config_path, 'r') as doc:
+        rll_settings = yaml.load(doc)
+        db_name = rll_settings["db_name"]
+        rospy.loginfo("using database %s", db_name)
 
-    app = tornado.web.Application([(r"/jobs", JobsHandler)], db=db,
+    db_client = motor.motor_tornado.MotorClient()
+    db = db_client[db_name]
+
+    app = tornado.web.Application([(r"/jobs", JobsHandler, dict(db=db, rll_settings=rll_settings))],
                                   debug = True)
     app.listen(8888)
     tornado.ioloop.PeriodicCallback(try_exit, 100).start()

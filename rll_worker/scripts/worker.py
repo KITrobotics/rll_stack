@@ -19,6 +19,9 @@
 #
 
 import rospy
+import rospkg
+import yaml
+
 import docker
 import pymongo
 import datetime
@@ -80,7 +83,7 @@ def run_job(jobs_collection, dClient, ns):
         return
 
     rospy.loginfo("\n\ncontainer logs:\n\n%s", job_logs)
-    log_file = "/home/rll/logs/test/" + str(job_id) + ".log"
+    log_file = rll_settings["logs_save_dir"] + "/" + str(job_id) + ".log"
     log_ptr = open(log_file, "w")
     log_ptr.write(job_logs)
     log_ptr.close()
@@ -103,7 +106,18 @@ if __name__ == '__main__':
     rospy.init_node('job_worker')
 
     ns = rospy.get_namespace()
-    jobs_collection = pymongo.MongoClient().rll_test.jobs
+
+    # settings
+    rospack = rospkg.RosPack()
+    config_path = rospack.get_path('rll_description') + "/config/rll.yaml"
+    with open(config_path, 'r') as doc:
+        rll_settings = yaml.load(doc)
+        db_name = rll_settings["db_name"]
+        rospy.loginfo("using database %s", db_name)
+
+    db_client = pymongo.MongoClient()
+    jobs_collection = db_client[db_name].jobs
+
     dClient = docker.from_env()
 
     while not rospy.is_shutdown():
