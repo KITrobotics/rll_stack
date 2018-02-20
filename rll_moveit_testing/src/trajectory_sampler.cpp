@@ -40,17 +40,20 @@ bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
 	if (my_iiwa.getRobotIsConnected()) {
 		ros::param::get("target_pos_set", target_set);
 		if (target_set && getTargets()) {
-			ROS_INFO("Moving to target 1: x %.2f, y %.2f, z %.2f", target_1.position.x, target_1.position.y,
-				 target_1.position.z);
-			move_group.setStartStateToCurrentState();
-			move_group.setPoseTarget(target_1);
-			runTrajectory();
+			// move three times between the targets
+			for(int i=1; i<=3; ++i) {
+				ROS_INFO("Moving to target 1: x %.2f, y %.2f, z %.2f", target_1.position.x, target_1.position.y,
+					 target_1.position.z);
+				move_group.setStartStateToCurrentState();
+				move_group.setPoseTarget(target_1);
+				runTrajectory();
 
-			ROS_INFO("Moving to target 2: x %.2f, y %.2f, z %.2f", target_2.position.x, target_2.position.y,
-				 target_2.position.z);
-			move_group.setStartStateToCurrentState();
-			move_group.setPoseTarget(target_2);
-			runTrajectory();
+				ROS_INFO("Moving to target 2: x %.2f, y %.2f, z %.2f", target_2.position.x, target_2.position.y,
+					 target_2.position.z);
+				move_group.setStartStateToCurrentState();
+				move_group.setPoseTarget(target_2);
+				runTrajectory();
+			}
 
 			resetToHome();
 			// reset after one run
