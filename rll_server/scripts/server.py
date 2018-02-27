@@ -103,6 +103,7 @@ class JobsHandler(tornado.web.RequestHandler):
 
         rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s'", username, git_url)
 
+        # TODO: better retrieve this from db
         if not secret == self.rll_settings["secret"]:
             raise tornado.web.HTTPError(401)
 

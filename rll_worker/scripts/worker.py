@@ -89,7 +89,6 @@ def run_job(jobs_collection, dClient, ns):
     log_ptr.close()
     rospy.loginfo("wrote logs to disk")
 
-    # TODO: also set status
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": "finished",
                                                   "job_end": datetime.datetime.now(),
