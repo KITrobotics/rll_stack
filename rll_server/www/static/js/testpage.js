@@ -6,10 +6,7 @@ $(function() {
     var subMessages = $("#submission-messages");
     var jobMessages = $("#status-messages");
     var jobIDdiv = $("#job-id-div");
-    var logsView = $("#logs-view");
-    var logsPre = $("#logs-pre");
-    var logsDownload = $("#logs-download");
-
+    var view_div = document.getElementById("logs-view");
 
     // Set up an event listener for the submit form
     $(form).submit(function(e) {
@@ -91,31 +88,24 @@ $(function() {
 
     function advertise_logs(job_id) {
         $.getJSON("http://localhost:8888/jobs?op=logs&job=" + job_id, function(obj) {
-            $(logsDownload).addClass("log_link");
-            var link = document.createElement("a");
-            link.innerHTML = "Download Log";
-            link.href = obj.log_url;
-            link.download = "job.log";
-            link.target = "_blank";
+            var download_btn = document.getElementById("log-download-btn");
+            download_btn.href = obj.log_url;
+            download_btn.download = "job.log";
+            download_btn.target = "_blank";
 
-            var download_div = document.getElementById("logs-download");
-            download_div.appendChild(link);
-
-            // clear after logs are downloaded
-            download_div.addEventListener('click', function() {
+            // clear after log modal is closed
+            var close_btn = document.getElementById("log-close");
+            close_btn.addEventListener('click', function() {
                 clear_page();
             }, false);
 
-            var view_div = document.getElementById("logs-view");
-            $(logsView).addClass("log_link");
-            var link = document.createElement("p");
-            link.innerHTML = "View Log";
-            view_div.appendChild(link);
+            $(view_div).collapse("show");
 
-            view_div.addEventListener('click', function() {
+            view_div.addEventListener("click", function() {
                 $.get(obj.log_url, function(data) {
                     var pre = document.createElement("pre");
                     pre.innerHTML = data;
+                    var view_div = document.getElementById("log-modal-body");
                     view_div.appendChild(pre);
                 });
             }, false);
@@ -134,7 +124,6 @@ $(function() {
         $(jobMessages).removeClass("success");
         $(jobMessages).removeClass("error");
         $(jobMessages).text("");
-        $(logsDownload).removeClass("log_link");
-        $(logsDownload).text("");
+        $(view_div).collapse("hide");
     };
 });

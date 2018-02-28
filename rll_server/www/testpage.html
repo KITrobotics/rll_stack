@@ -17,9 +17,13 @@
       <div id="submission-messages"></div>
       <div id="job-id-div"></div>
       <div id="status-messages"></div>
-      <div id="logs-view"></div>
-      <div id="logs-pre"></div>
-      <div id="logs-download"></div>
+
+      <div id="logs-view" class="collapse">
+        <!-- Button trigger modal -->
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#log-modal">
+          View Log
+        </button>
+      </div>
 
       <form id="submit-form" action="http://localhost:8888/jobs" method="post">
         <fieldset>
@@ -34,6 +38,28 @@
         </fieldset>
       </form>
 
+    </div>
+
+
+    <div id="modal-wrapper">
+      <!-- Modal -->
+      <div class="modal fade" id="log-modal" tabindex="-1" role="dialog" aria-labelledby="log-modal" aria-hidden="true">
+        <div class="modal-dialog" id="log-modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Job Log</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div id="log-modal-body" class="modal-body"></div>
+            <div class="modal-footer">
+              <button id="log-close" type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              <a id="log-download-btn" href="#" class="btn btn-primary" role="button">Download Log</a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="./static/js/jquery-3.3.1.min.js"></script>
