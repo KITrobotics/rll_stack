@@ -6,6 +6,8 @@ $(function() {
     var subMessages = $("#submission-messages");
     var jobMessages = $("#status-messages");
     var jobIDdiv = $("#job-id-div");
+    var logsView = $("#logs-view");
+    var logsPre = $("#logs-pre");
     var logsDownload = $("#logs-download");
 
 
@@ -94,15 +96,38 @@ $(function() {
             link.innerHTML = "Download Log";
             link.href = obj.log_url;
             link.download = "job.log";
+            link.target = "_blank";
 
             var download_div = document.getElementById("logs-download");
             download_div.appendChild(link);
+
+            // clear after logs are downloaded
+            download_div.addEventListener('click', function() {
+                clear_page();
+            }, false);
+
+            var view_div = document.getElementById("logs-view");
+            $(logsView).addClass("log_link");
+            var link = document.createElement("p");
+            link.innerHTML = "View Log";
+            view_div.appendChild(link);
+
+            view_div.addEventListener('click', function() {
+                $.get(obj.log_url, function(data) {
+                    var pre = document.createElement("pre");
+                    pre.innerHTML = data;
+                    view_div.appendChild(pre);
+                });
+            }, false);
         });
     };
 
     function clear_page() {
         $("#username").val("");
         $("#repo_url").val("");
+        $(subMessages).removeClass("success");
+        $(subMessages).removeClass("error");
+        $(subMessages).text("");
         $(jobIDdiv).removeClass("success");
         $(jobIDdiv).removeClass("error");
         $(jobIDdiv).text("")

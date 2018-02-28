@@ -1,7 +1,11 @@
 /*
-   taken from this great tutorial:
+   most parts come from this great tutorial:
    http://blog.teamtreehouse.com/create-ajax-contact-form
 */
+
+body {
+  background-color: #333;
+}
 
 *, *:before, *:after {
   -moz-box-sizing: border-box;
@@ -17,7 +21,7 @@ html {
 }
 
 #page-wrapper {
-  width: 640px;
+  width: 800px;
   background: #FFFFFF;
   padding: 1em;
   margin: 1em auto;
