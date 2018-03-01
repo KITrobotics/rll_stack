@@ -31,7 +31,8 @@ class TrajectorySampler
 public:
 	explicit TrajectorySampler(ros::NodeHandle nh);
 	bool run_job(rll_worker::JobEnv::Request &req, rll_worker::JobEnv::Response &resp);
-	void resetToHome();
+	bool idle(rll_worker::JobEnv::Request &req, rll_worker::JobEnv::Response &resp);
+	void resetToHome(bool info = true);
 
 	~TrajectorySampler();
   
@@ -43,7 +44,7 @@ private:
 	iiwa_ros::iiwaRos my_iiwa;
 
 	bool getTargets();
-	void runTrajectory();
+	void runTrajectory(bool info = true);
 };
 
 #endif  // RLL_TRAJECTORY_SAMPLER_H

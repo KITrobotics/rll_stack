@@ -71,6 +71,23 @@ bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
 	return true;
 }
 
+bool TrajectorySampler::idle(rll_worker::JobEnv::Request &req,
+			     rll_worker::JobEnv::Response &resp)
+{
+	// Send home position when idling
+	// This ensures that the brakes are not activated and the control cycle keeps running.
+	// If we the don't do this, the robot won't move when a trajectory is sent and the brakes are active.
+	if (my_iiwa.getRobotIsConnected()) {
+			resetToHome(false);
+			resp.job.status = rll_worker::JobStatus::SUCCESS;
+	} else {
+		ROS_WARN_STREAM("Robot is not connected...");
+		resp.job.status = rll_worker::JobStatus::INTERNAL_ERROR;
+	}
+
+	return true;
+}
+
 bool TrajectorySampler::getTargets()
 {
 	bool got_targets = false;
@@ -96,19 +113,21 @@ bool TrajectorySampler::getTargets()
 	return got_targets;
 }
 
-void TrajectorySampler::runTrajectory()
+void TrajectorySampler::runTrajectory(bool info)
 {
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 	bool success_plan;
 
 	success_plan = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-	ROS_INFO("Planning result: %s",
-		 success_plan ? "SUCCEEDED" : "FAILED");
+	if (info)
+		ROS_INFO("Planning result: %s",
+			 success_plan ? "SUCCEEDED" : "FAILED");
 
 	if (success_plan) {
 		success_plan = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-		ROS_INFO("Plan execution result: %s",
-			 success_plan ? "SUCCEEDED" : "FAILED");
+		if (info)
+			ROS_INFO("Plan execution result: %s",
+				 success_plan ? "SUCCEEDED" : "FAILED");
 
 		// stay a little a the target
 		ros::Duration(1.0).sleep();
@@ -117,12 +136,14 @@ void TrajectorySampler::runTrajectory()
 	}
 }
 
-void TrajectorySampler::resetToHome()
+void TrajectorySampler::resetToHome(bool info)
 {
-	ROS_INFO("Moving to home");
+	if (info)
+		ROS_INFO("Moving to home");
+
 	move_group.setStartStateToCurrentState();
 	move_group.setNamedTarget("home_bow");
-	runTrajectory();
+	runTrajectory(info);
 }
 
 TrajectorySampler::~TrajectorySampler() {}
@@ -138,8 +159,11 @@ int main (int argc, char **argv)
 	spinner.start();
 
 	TrajectorySampler plan_sampler(nh);
+
 	plan_sampler.resetToHome();
-	ros::ServiceServer service = nh.advertiseService("job_env", &TrajectorySampler::run_job, &plan_sampler);
+
+	ros::ServiceServer service_job = nh.advertiseService("job_env", &TrajectorySampler::run_job, &plan_sampler);
+	ros::ServiceServer service_idle = nh.advertiseService("job_idle", &TrajectorySampler::idle, &plan_sampler);
 	ROS_INFO("Trajectory Sampler started");
 
 	ros::waitForShutdown();

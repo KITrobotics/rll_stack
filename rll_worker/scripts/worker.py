@@ -41,7 +41,13 @@ def run_job(jobs_collection, dClient, ns):
 
     if job == None:
         # rospy.loginfo("no job in queue")
-        rospy.sleep(1.)
+        rospy.wait_for_service("job_idle")
+        try:
+            job_idle = rospy.ServiceProxy("job_idle", JobEnv)
+            resp = job_idle(True)
+        except rospy.ServiceException, e:
+            rospy.loginfo("service call failed: %s", e)
+        # rospy.sleep(1.)
         return
 
     job_id = job["_id"]
