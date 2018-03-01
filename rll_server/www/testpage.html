@@ -18,14 +18,14 @@
       <div id="job-id-div"></div>
       <div id="status-messages"></div>
 
-      <div id="logs-view" class="collapse">
+      <div id="logs-view" class="collapse text-center">
         <!-- Button trigger modal -->
-        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#log-modal">
+        <button type="button" class="btn btn-lg btn-primary" data-toggle="modal" data-target="#log-modal">
           View Log
         </button>
       </div>
 
-      <form id="submit-form" action="http://localhost:8888/jobs" method="post">
+      <form id="submit-form" action="./api/jobs" method="post">
         <fieldset>
           <input type="hidden" name="op" value="submit">
           Login:<br>

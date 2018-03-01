@@ -61,7 +61,7 @@ $(function() {
         (function poll(job_id, job_done_or_error) {
             setTimeout(function() {
                 var job_status;
-                $.getJSON("http://localhost:8888/jobs?op=status&job=" + job_id, function(obj) {
+                $.getJSON("./api/jobs?op=status&job=" + job_id, function(obj) {
                     if (obj.status == "success") {
                         $(jobMessages).addClass("success");
                         job_status = "Status: " + obj.job_status;
@@ -87,7 +87,7 @@ $(function() {
     };
 
     function advertise_logs(job_id) {
-        $.getJSON("http://localhost:8888/jobs?op=logs&job=" + job_id, function(obj) {
+        $.getJSON("./api/jobs?op=logs&job=" + job_id, function(obj) {
             var download_btn = document.getElementById("log-download-btn");
             download_btn.href = obj.log_url;
             download_btn.download = "job.log";
