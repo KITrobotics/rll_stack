@@ -23,9 +23,13 @@
         <button type="button" class="btn btn-lg btn-primary" data-toggle="modal" data-target="#log-modal">
           View Log
         </button>
+        <p>or</p>
+        <button id="clear-button" type="button" class="btn btn-lg btn-primary">
+          Submit a new job
+        </button>
       </div>
 
-      <form id="submit-form" action="./api/jobs" method="post">
+      <form id="submit-form" class="collapse show" action="./api/jobs" method="post">
         <fieldset>
           <input type="hidden" name="op" value="submit">
           Login:<br>

@@ -7,6 +7,11 @@ $(function() {
     var jobMessages = $("#status-messages");
     var jobIDdiv = $("#job-id-div");
     var view_div = document.getElementById("logs-view");
+    clear_btn = document.getElementById("clear-button");
+
+    clear_btn.addEventListener('click', function() {
+        clear_page();
+    }, false);
 
     // Set up an event listener for the submit form
     $(form).submit(function(e) {
@@ -32,6 +37,7 @@ $(function() {
                     $(subMessages).removeClass("error");
                     $(subMessages).addClass("success");
                     $(subMessages).text("job successfully submitted");
+                    $(form).collapse("hide");
                     poll_status(obj.job_id);
                 } else if (obj.status == "error") {
                     $(subMessages).removeClass("success");
@@ -96,8 +102,8 @@ $(function() {
         var view_div = document.getElementById("stream-modal-body");
 
         if (run && document.getElementById("robot_img") != null) {
-                // stream is already set up
-                return
+            // stream is already set up
+            return
         } else if (run && cam_url != undefined && cam_url != "unknown") {
             var img = document.createElement("img");
             img.src = cam_url;
@@ -128,14 +134,19 @@ $(function() {
 
             $(view_div).collapse("show");
 
-            view_div.addEventListener("click", function() {
-                $.get(obj.log_url, function(data) {
-                    var pre = document.createElement("pre");
-                    pre.innerHTML = data;
-                    var view_div = document.getElementById("log-modal-body");
-                    view_div.appendChild(pre);
-                });
-            }, false);
+            log_embed_handle = function() {
+                if (document.getElementById("log-embed") == null) {
+                    $.get(obj.log_url, function(data) {
+                        var pre = document.createElement("pre");
+                        pre.id = "log-embed";
+                        pre.innerHTML = data;
+                        var view_div = document.getElementById("log-modal-body");
+                        view_div.appendChild(pre);
+                    });
+                }
+            };
+
+            view_div.addEventListener("click", log_embed_handle, {once: true});
         });
     };
 
@@ -152,5 +163,10 @@ $(function() {
         $(jobMessages).removeClass("error");
         $(jobMessages).text("");
         $(view_div).collapse("hide");
+        $(form).collapse("show");
+
+        var log = document.getElementById("log-embed");
+        if (log != null)
+            log.parentNode.removeChild(log);
     };
 });
