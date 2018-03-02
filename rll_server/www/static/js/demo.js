@@ -107,6 +107,8 @@ $(function() {
         } else {
             $(modal_div).modal('hide');
             var img = document.getElementById("robot_img");
+            // makes the browser stop loading the stream
+            img.src = "#";
             img.parentNode.removeChild(img);
         }
     };
