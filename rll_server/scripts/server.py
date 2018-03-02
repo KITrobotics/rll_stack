@@ -105,6 +105,7 @@ class JobsHandler(tornado.web.RequestHandler):
 
         # TODO: better retrieve this from db
         if not secret == self.rll_settings["secret"]:
+            rospy.logwarn("authentication error")
             raise tornado.web.HTTPError(401)
 
         # check if there is already a job in the queue for this user
@@ -169,6 +170,8 @@ class JobsHandler(tornado.web.RequestHandler):
 
         if job_status == "finished":
             result["job_result"] = job["job_result"]
+        elif job_status == "running":
+            result["cam_url"] = self._ns_to_cam(job["ns"])
 
         return result
 
@@ -181,6 +184,11 @@ class JobsHandler(tornado.web.RequestHandler):
             result = {"status": "success", "job_id": str(result.inserted_id)}
             self.write(json_encode(result))
             self.finish()
+
+    def _ns_to_cam(self, ns):
+        cam_mapping = {"/iiwa_1/": self.rll_settings["cams_base_url"] + "/stream1/mjpg/video.mjpg",
+                       "/iiwa_2/": self.rll_settings["cams_base_url"] + "/stream2/mjpg/video.mjpg"}
+        return cam_mapping.get(ns, "unknown")
 
 if __name__ == '__main__':
     rospy.init_node('rll_server')

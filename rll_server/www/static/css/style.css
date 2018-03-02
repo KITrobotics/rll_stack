@@ -34,6 +34,11 @@ html {
     max-width: 1500px;
 }
 
+#stream-modal-dialog {
+    width: 630px;
+    max-width: 630px;
+}
+
 h1 {
   margin-top: 0;
 }

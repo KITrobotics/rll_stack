@@ -71,7 +71,12 @@ $(function() {
                         job_done_or_error = true;
                     }
 
-                    if (obj.job_status == "finished") {
+                    if (obj.job_status == "running") {
+                        stream_cam(true, obj.cam_url);
+                    } else if (obj.job_status == "finished") {
+                        // end cam stream
+                        stream_cam(false);
+
                         job_status += "; Job Result: " + obj.job_result;
                         advertise_logs(job_id);
                         job_done_or_error = true;
@@ -84,6 +89,26 @@ $(function() {
                 });
             }, 1000);
         })(job_id, job_done_or_error);
+    };
+
+    function stream_cam(run, cam_url) {
+        var modal_div = document.getElementById("stream-modal");
+        var view_div = document.getElementById("stream-modal-body");
+
+        if (run && document.getElementById("robot_img") != null) {
+                // stream is already set up
+                return
+        } else if (run && cam_url != undefined && cam_url != "unknown") {
+            var img = document.createElement("img");
+            img.src = cam_url;
+            img.id = "robot_img";
+            view_div.appendChild(img);
+            $(modal_div).modal('show');
+        } else {
+            $(modal_div).modal('hide');
+            var img = document.getElementById("robot_img");
+            img.parentNode.removeChild(img);
+        }
     };
 
     function advertise_logs(job_id) {
