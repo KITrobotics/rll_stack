@@ -23,8 +23,8 @@
   </material>
 
   <!--  Define the origin of your 3D space
-  Here we define a box lying at 0,0,0 with some dimensions. In reality, our robot is placed on top of a steel table.
-  This will include the table top in the scene and avoid the robot to hit it when using MoveIt!
+       Here we define a box lying at 0,0,0 with some dimensions. In reality, our robot is placed on top of a steel table.
+       This will include the table top in the scene and avoid the robot to hit it when using MoveIt!
   -->
 
   <link name="world">
@@ -45,7 +45,7 @@
   </link>
 
   <!-- virtual walls
-  Every wall is a link which does not collide with a different wall or the collision link of the steel plate -->
+       Every wall is a link which does not collide with a different wall or the collision link of the steel plate -->
   
   <joint name="wall_joint1" type="fixed">
     <parent link="world" />
@@ -154,14 +154,33 @@
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:iiwa7>
 
-
   <!-- Here we insert a schunk gripper in the scene -->
-
-   <xacro:egl90 parent="$(arg robot_name)_link_ee" prefix="$(arg robot_name)_">
-      <origin xyz="0 0 0.02" rpy="0 0 0"/>
-   </xacro:egl90>
-   <xacro:egl90-jaws prefix="$(arg robot_name)_" x="0.0" min="-0.015" max="0.026">
-     <mesh filename="package://schunk_gripper_egl90/meshes/finger.stl"/>
-   </xacro:egl90-jaws>
+  <joint name="gripper_adapter_joint" type="fixed">
+    <parent link="$(arg robot_name)_link_ee" />
+    <child link="$(arg robot_name)_gripper_adapter" />
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="$(arg robot_name)_gripper_adapter">
+    <visual>
+      <origin xyz="0 0 0.024" rpy="${180 * PI / 180} 0 ${-90 * PI / 180}"/>
+      <geometry>
+        <mesh filename="package://rll_description/meshes/visual/gripper_adapter.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.024" rpy="${180 * PI / 180} 0 ${-90 * PI / 180}"/>
+      <geometry>
+        <mesh filename="package://rll_description/meshes/visual/gripper_adapter.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Grey"/>
+    </collision>
+  </link>
+  <xacro:egl90 parent="$(arg robot_name)_gripper_adapter" prefix="$(arg robot_name)_">
+    <origin xyz="0 0 0.024" rpy="0 0 ${-90 * PI / 180}"/>
+  </xacro:egl90>
+  <xacro:egl90-jaws prefix="$(arg robot_name)_" x="0.0" min="-0.015" max="0.026">
+    <mesh filename="package://rll_description/meshes/visual/gripper_finger.dae" scale="0.001 0.001 0.001"/>
+  </xacro:egl90-jaws>
 
 </robot>
