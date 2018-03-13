@@ -6,6 +6,10 @@
   <xacro:include filename="$(find iiwa_description)/urdf/materials.xacro" />
   <!--Import the iiwa7 macro -->
   <xacro:include filename="$(find iiwa_description)/urdf/iiwa7.xacro"/>
+  <!--Import the schunk gripper egl90  -->
+  <xacro:include filename="$(find schunk_gripper_egl90)/urdf/egl90_macro.xacro"/>
+
+
 
   <!--  Arguments for the iiwa7 macro  -->
   <xacro:arg name="hardware_interface" default="PositionJointInterface"/>
@@ -149,5 +153,15 @@
   <xacro:iiwa7 hardware_interface="$(arg hardware_interface)" robot_name="$(arg robot_name)" parent="world">
     <origin xyz="0 0 0" rpy="0 0 0"/>
   </xacro:iiwa7>
+
+
+  <!-- Here we insert a schunk gripper in the scene -->
+
+   <xacro:egl90 parent="$(arg robot_name)_link_ee" prefix="$(arg robot_name)_">
+      <origin xyz="0 0 0.02" rpy="0 0 0"/>
+   </xacro:egl90>
+   <xacro:egl90-jaws prefix="$(arg robot_name)_" x="0.0" min="-0.015" max="0.026">
+     <mesh filename="package://schunk_gripper_egl90/meshes/finger.stl"/>
+   </xacro:egl90-jaws>
 
 </robot>

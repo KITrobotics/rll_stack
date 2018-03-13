@@ -6,5 +6,5 @@
   <arg name="robot_name" default="iiwa"/>
 
   <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find rll_description)/urdf/iiwa_table.urdf.xacro' hardware_interface:=$(arg hardware_interface) robot_name:=$(arg robot_name)" />
-  
+
 </launch>
