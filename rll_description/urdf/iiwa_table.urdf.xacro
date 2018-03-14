@@ -38,7 +38,8 @@
     <collision>
       <origin xyz="0 0 -0.1" rpy="0 0 0"/>
       <geometry>
-        <box size="1.2 1.6 0.49"/>
+        <!-- <box size="1.2 1.6 0.49"/> -->
+        <box size="1.2 1.6 0.2"/>
       </geometry>
       <material name="steel" />
     </collision>
