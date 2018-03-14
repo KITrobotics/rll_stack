@@ -26,7 +26,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	move_group.setPlannerId(PLANNING_GROUP+"[RRTConnectkConfigDefault]");
 	move_group.setPlanningTime(10.0);
 	// slow down movement of the robot
-	move_group.setMaxVelocityScalingFactor(0.2);
+	move_group.setMaxVelocityScalingFactor(0.1);
 
 	my_iiwa.init();
 }
@@ -95,25 +95,27 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 				   rll_moveit_testing::PickPlace::Response &resp)
 {
 	bool success;
+	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+	std::vector<geometry_msgs::Pose> waypoints_to;
+	std::vector<geometry_msgs::Pose> waypoints_away;
+	moveit_msgs::RobotTrajectory trajectory;
+	const double eef_step = 0.05;
+	const double jump_threshold = 1000.0;
 	
-	if (my_iiwa.getRobotIsConnected()) {
+	// if (my_iiwa.getRobotIsConnected()) {
 		ROS_INFO("Moving above target");
 		move_group.setStartStateToCurrentState();
-		move_group.setPoseTarget(req.pose_above);
-		success = runTrajectory();
-		if (!success) {
-			resp.success = false;
-			return true;
-		}
-
-		ROS_INFO("Moving to grip position");
-		move_group.setStartStateToCurrentState();
+		waypoints_to.push_back(req.pose_above);
+		waypoints_to.push_back(req.pose_grip);
 		move_group.setPoseTarget(req.pose_grip);
-		success = runTrajectory();
-		if (!success) {
-			resp.success = false;
-			return true;
-		}
+		move_group.computeCartesianPath(waypoints_to, eef_step, jump_threshold, trajectory);
+		my_plan.trajectory_= trajectory;
+
+		move_group.execute(my_plan);
+		// if (!success) {
+		// 	resp.success = false;
+		// 	return true;
+		// }
 
 		if (req.gripper_close)
 			close_gripper();
@@ -122,17 +124,21 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 
 		ROS_INFO("Moving above grip position");
 		move_group.setStartStateToCurrentState();
+		waypoints_away.push_back(req.pose_above);
 		move_group.setPoseTarget(req.pose_above);
-		success = runTrajectory();
-		if (!success) {
-			resp.success = false;
-			return true;
-		}
+		move_group.computeCartesianPath(waypoints_away, eef_step, jump_threshold, trajectory);
+		my_plan.trajectory_= trajectory;
 
-	} else {
-		ROS_WARN_STREAM("Robot is not connected...");
-		resp.success = false;
-	}
+		move_group.execute(my_plan);
+		// if (!success) {
+		// 	resp.success = false;
+		// 	return true;
+		// }
+
+	// } else {
+	// 	ROS_WARN_STREAM("Robot is not connected...");
+	// 	resp.success = false;
+	// }
 
 	resp.success = true;
 	return true;
