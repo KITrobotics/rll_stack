@@ -35,8 +35,17 @@
           Login:<br>
           <input id="username" type="text" name="username" placeholder="Your username">
           <input id="password" type="password" name="secret" placeholder="Your password">
-          <br>Git repo URL:<br>
-          <input id="repo_url" type="text" name="git_url" placeholder="Your Git repo URL">
+          <div id="project-list">
+            Your Projects:
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="git_url" value="https://gitlab.ipr.kit.edu/rll/tower_hanoi.git" id="defaultCheck1">
+              <label class="form-check-label" for="defaultCheck1">
+                Tower of Hanoi
+              </label>
+            </div>
+          </div>
+          Add a a new project:
+          <input id="repo_url" type="text" name="git_url" placeholder="Your Git repo URL" disabled>
           <br><br>
           <input type="submit" value="Submit" />
         </fieldset>
