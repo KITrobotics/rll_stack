@@ -26,7 +26,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	move_group.setPlannerId("RRTConnectkConfigDefault");
 	move_group.setPlanningTime(0.5);
 	// slow down movement of the robot
-	move_group.setMaxVelocityScalingFactor(0.1);
+	move_group.setMaxVelocityScalingFactor(0.5);
 
 	std::string ee_link;
 	std::string ns = ros::this_node::getNamespace();
