@@ -38,8 +38,10 @@
     <collision>
       <origin xyz="0 0 -0.1" rpy="0 0 0"/>
       <geometry>
+        <!-- for disallowing eef positions below joint 1 -->
         <!-- <box size="1.2 1.6 0.49"/> -->
-        <box size="1.2 1.6 0.2"/>
+        <!-- for grasping objects on table -->
+        <box size="1.2 1.6 0.203"/>
       </geometry>
       <material name="steel" />
     </collision>
@@ -183,5 +185,13 @@
   <xacro:egl90-jaws prefix="$(arg robot_name)_" x="0.0" min="-0.015" max="0.026">
     <mesh filename="package://rll_description/meshes/visual/gripper_finger.dae" scale="0.001 0.001 0.001"/>
   </xacro:egl90-jaws>
+
+  <!-- TCP link -->
+  <joint name="gripper_ee_joint" type="fixed">
+    <parent link="$(arg robot_name)_link_ee" />
+    <child link="$(arg robot_name)_gripper_link_ee" />
+    <origin xyz="0 0 0.248" rpy="0 0 0"/>
+  </joint>
+  <link name="$(arg robot_name)_gripper_link_ee"/>
 
 </robot>

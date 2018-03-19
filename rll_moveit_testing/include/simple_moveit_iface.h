@@ -51,7 +51,7 @@ private:
 
 	bool getTargets();
 	bool runTrajectory(bool info = true);
-	int move_grip(float sp, float cu);
+	int move_grip(float speed, float current);
 	int acknowledge();
 };
 

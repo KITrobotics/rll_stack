@@ -2,8 +2,8 @@
 <launch>
     <!-- The planning and execution components of MoveIt! configured to run -->
     <!-- using the ROS-Industrial interface. -->
-    
-    <!-- | 		PARAMETERS  		| -->
+
+    <!-- |              PARAMETERS              | -->
     <!-- hardware_interface to use : PositionJointInterface, EffortJointInterface, VelocityJointInterface. -->
     <arg name="hardware_interface" default="PositionJointInterface"/>
     <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
@@ -16,22 +16,22 @@
     <arg name="rviz" default="true" />
 
     <group ns="$(arg robot_name_1)">
-        <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" 
+        <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory"
                to="/$(arg robot_name_1)/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" />
-        <remap from="robot_description" to="/$(arg robot_name_1)/robot_description" /> 
-        <remap from="/get_planning_scene" to="/$(arg robot_name_1)/get_planning_scene" /> 
+        <remap from="robot_description" to="/$(arg robot_name_1)/robot_description" />
+        <remap from="/get_planning_scene" to="/$(arg robot_name_1)/get_planning_scene" />
     </group>
 
     <group ns="$(arg robot_name_2)">
-        <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" 
+        <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory"
                to="/$(arg robot_name_2)/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory" />
-        <remap from="robot_description" to="/$(arg robot_name_2)/robot_description" /> 
-        <remap from="/get_planning_scene" to="/$(arg robot_name_2)/get_planning_scene" /> 
+        <remap from="robot_description" to="/$(arg robot_name_2)/robot_description" />
+        <remap from="/get_planning_scene" to="/$(arg robot_name_2)/get_planning_scene" />
     </group>
-    
+
     <!-- Working with the real robot.  -->
     <group ns="$(arg robot_name_1)">
-        
+
         <!-- Load controllers accordingly to parameters -->
         <include file="$(find rll_two_iiwas_control)/launch/iiwa_control.launch">
             <arg name="hardware_interface" value="$(arg hardware_interface)" />
@@ -39,16 +39,18 @@
             <arg name="robot_name" value="$(arg robot_name_1)" />
             <arg name="model" value="$(arg model)" />
         </include>
-        
+
         <!-- Robot interface -->
         <include file="$(find rll_two_iiwas_hw)/launch/iiwa_hw.launch" >
             <arg name="hardware_interface" value="$(arg hardware_interface)" />
             <arg name="robot_name" value="$(arg robot_name_1)" />
         </include>
-        
+
+        <param name="toolName" type="string" value="gripper" />
+
     </group>
     <group ns="$(arg robot_name_2)">
-        
+
         <!-- Load controllers accordingly to parameters -->
         <include file="$(find rll_two_iiwas_control)/launch/iiwa_control.launch">
             <arg name="hardware_interface" value="$(arg hardware_interface)" />
@@ -56,15 +58,17 @@
             <arg name="robot_name" value="$(arg robot_name_2)" />
             <arg name="model" value="$(arg model)" />
         </include>
-        
+
         <!-- Robot interface -->
         <include file="$(find rll_two_iiwas_hw)/launch/iiwa_hw.launch" >
             <arg name="hardware_interface" value="$(arg hardware_interface)" />
             <arg name="robot_name" value="$(arg robot_name_2)"/>
         </include>
-        
+
+        <param name="toolName" type="string" value="gripper" />
+
     </group>
-    
+
     <!-- Load move_group -->
     <group ns="$(arg robot_name_1)">
         <include file="$(find rll_two_iiwas_moveit)/launch/move_group.launch">
@@ -81,7 +85,7 @@
 
     </group>
 
-    
+
     <!-- Load move_group -->
     <group ns="$(arg robot_name_2)">
         <include file="$(find rll_two_iiwas_moveit)/launch/move_group.launch">

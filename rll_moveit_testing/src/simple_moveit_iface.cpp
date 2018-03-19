@@ -23,10 +23,21 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	: move_group(PLANNING_GROUP)
 {
 	// configure planner
-	move_group.setPlannerId(PLANNING_GROUP+"[RRTConnectkConfigDefault]");
-	move_group.setPlanningTime(10.0);
+	move_group.setPlannerId("RRTConnectkConfigDefault");
+	move_group.setPlanningTime(0.5);
 	// slow down movement of the robot
 	move_group.setMaxVelocityScalingFactor(0.1);
+
+	std::string ee_link;
+	std::string ns = ros::this_node::getNamespace();
+	ROS_INFO("starting in ns %s", ns.c_str());
+	if (ns == "//iiwa_1")
+		ee_link = "iiwa_1_gripper_link_ee";
+	else if (ns == "//iiwa_2")
+		ee_link = "iiwa_2_gripper_link_ee";
+	else
+		ee_link = "iiwa_gripper_link_ee";
+	move_group.setEndEffectorLink(ee_link);
 
 	my_iiwa.init();
 }
@@ -35,41 +46,6 @@ bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
 				rll_worker::JobEnv::Response &resp)
 {
 	ROS_INFO("got job running request");
-	bool target_set;
-
-	if (my_iiwa.getRobotIsConnected()) {
-		ros::param::get("target_pos_set", target_set);
-		if (target_set && getTargets()) {
-			// move three times between the targets
-			for(int i=1; i<=3; ++i) {
-				ROS_INFO("Moving to target 1: x %.2f, y %.2f, z %.2f", target_1.position.x, target_1.position.y,
-					 target_1.position.z);
-				move_group.setStartStateToCurrentState();
-				move_group.setPoseTarget(target_1);
-				runTrajectory();
-				close_gripper();
-
-				ROS_INFO("Moving to target 2: x %.2f, y %.2f, z %.2f", target_2.position.x, target_2.position.y,
-					 target_2.position.z);
-				move_group.setStartStateToCurrentState();
-				move_group.setPoseTarget(target_2);
-				runTrajectory();
-				open_gripper();
-			}
-
-			resetToHome();
-			open_gripper();
-			// reset after one run
-			ros::param::set("target_pos_set", false);
-			resp.job.status = rll_worker::JobStatus::SUCCESS;
-		} else {
-			ROS_WARN("No target set or unable to get target");
-			resp.job.status = rll_worker::JobStatus::FAILURE;
-		}
-	} else {
-		ROS_WARN_STREAM("Robot is not connected...");
-		resp.job.status = rll_worker::JobStatus::INTERNAL_ERROR;
-	}
 
 	return true;
 }
@@ -101,7 +77,7 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	moveit_msgs::RobotTrajectory trajectory;
 	const double eef_step = 0.05;
 	const double jump_threshold = 1000.0;
-	
+
 	// if (my_iiwa.getRobotIsConnected()) {
 		ROS_INFO("Moving above target");
 		move_group.setStartStateToCurrentState();
@@ -113,8 +89,8 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 
 		move_group.execute(my_plan);
 		// if (!success) {
-		// 	resp.success = false;
-		// 	return true;
+		//	resp.success = false;
+		//	return true;
 		// }
 
 		if (req.gripper_close)
@@ -131,13 +107,13 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 
 		move_group.execute(my_plan);
 		// if (!success) {
-		// 	resp.success = false;
-		// 	return true;
+		//	resp.success = false;
+		//	return true;
 		// }
 
 	// } else {
-	// 	ROS_WARN_STREAM("Robot is not connected...");
-	// 	resp.success = false;
+	//	ROS_WARN_STREAM("Robot is not connected...");
+	//	resp.success = false;
 	// }
 
 	resp.success = true;
@@ -208,15 +184,15 @@ void TrajectorySampler::open_gripper()
 	acknowledge();
 }
 
-int TrajectorySampler::move_grip(float sp, float cu)
+int TrajectorySampler::move_grip(float speed, float current)
 {
 	ros::NodeHandle n_move_grip;
 	ros::ServiceClient c_move_grip = n_move_grip.serviceClient<schunk_gripper_egl90::MoveGrip>("gripper_egl_90/move_grip");
 	schunk_gripper_egl90::MoveGrip srv;
-	srv.request.speed = sp;
-	srv.request.current = cu;
+	srv.request.speed = speed;
+	srv.request.current = current;
 	if (c_move_grip.call(srv)) {
-	  ROS_INFO("Moving the gripper fingers.");
+	  ROS_INFO("Moving the gripper fingers...");
 	} else {
 	  ROS_ERROR("Failed to call service move_grip");
 	  return 1;
@@ -269,7 +245,7 @@ int main (int argc, char **argv)
 	ros::ServiceServer service_job = nh.advertiseService("job_env", &TrajectorySampler::run_job, &plan_sampler);
 	ros::ServiceServer service_idle = nh.advertiseService("job_idle", &TrajectorySampler::idle, &plan_sampler);
 	ros::ServiceServer pick_place = nh.advertiseService("pick_place", &TrajectorySampler::pick_place, &plan_sampler);
-	ROS_INFO("Trajectory Sampler started");
+	ROS_INFO("Simple Moveit Interface started");
 
 	ros::waitForShutdown();
 
