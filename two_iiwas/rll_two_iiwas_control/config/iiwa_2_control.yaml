@@ -182,6 +182,23 @@
     action_monitor_rate: 30            # Override default
     stop_trajectory_duration: 0        # Override default
 
+      # Forward Position Controllers ---------------------------------------
+  PosVelJointInterface_trajectory_controller:
+    type: pos_vel_controllers/JointTrajectoryController
+    joints: 
+      - iiwa_2_joint_1
+      - iiwa_2_joint_2
+      - iiwa_2_joint_3
+      - iiwa_2_joint_4
+      - iiwa_2_joint_5
+      - iiwa_2_joint_6
+      - iiwa_2_joint_7
 
+    constraints:
+      goal_time: 2.0                   # Override default
+
+    state_publish_rate:  100            # Override default
+    action_monitor_rate: 30            # Override default
+    stop_trajectory_duration: 0.5        # Override default
 
 

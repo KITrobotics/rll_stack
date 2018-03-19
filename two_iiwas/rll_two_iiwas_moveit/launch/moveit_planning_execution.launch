@@ -5,7 +5,7 @@
 
     <!-- |              PARAMETERS              | -->
     <!-- hardware_interface to use : PositionJointInterface, EffortJointInterface, VelocityJointInterface. -->
-    <arg name="hardware_interface" default="PositionJointInterface"/>
+    <arg name="hardware_interface" default="PosVelJointInterface"/>
     <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
     <arg name="robot_name_1" default="iiwa_1"/>
     <arg name="robot_name_2" default="iiwa_2"/>

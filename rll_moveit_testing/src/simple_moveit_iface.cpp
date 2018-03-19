@@ -75,7 +75,7 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	std::vector<geometry_msgs::Pose> waypoints_to;
 	std::vector<geometry_msgs::Pose> waypoints_away;
 	moveit_msgs::RobotTrajectory trajectory;
-	const double eef_step = 0.05;
+	const double eef_step = 0.001;
 	const double jump_threshold = 1000.0;
 
 	// if (my_iiwa.getRobotIsConnected()) {
