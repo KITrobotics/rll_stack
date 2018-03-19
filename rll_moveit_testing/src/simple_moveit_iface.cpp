@@ -58,6 +58,7 @@ bool TrajectorySampler::idle(rll_worker::JobEnv::Request &req,
 	// If we the don't do this, the robot won't move when a trajectory is sent and the brakes are active.
 	if (my_iiwa.getRobotIsConnected()) {
 			resetToHome(false);
+			open_gripper();
 			resp.job.status = rll_worker::JobStatus::SUCCESS;
 	} else {
 		ROS_WARN_STREAM("Robot is not connected...");

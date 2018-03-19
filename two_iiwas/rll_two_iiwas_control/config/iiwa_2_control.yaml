@@ -147,7 +147,7 @@
       - iiwa_2_joint_7
 
     constraints:
-      goal_time: 0.5                   # Override default
+      goal_time: 2.0                   # Override default
 
     state_publish_rate:  25            # Override default
     action_monitor_rate: 30            # Override default
