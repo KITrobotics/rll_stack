@@ -19,10 +19,6 @@
 
 #include <simple_moveit_iface.h>
 
-// TODO: incorporate "rosservice call /iiwa_2/configuration/pathParameters "joint_relative_velocity: 1.0
-// joint_relative_acceleration: 1.0
-// override_joint_acceleration: 3.5""
-
 TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	: move_group(PLANNING_GROUP)
 {
@@ -44,6 +40,9 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	move_group.setEndEffectorLink(ee_link);
 
 	my_iiwa.init();
+	my_iiwa.getPathParametersService().setJointRelativeVelocity(1.0);
+	my_iiwa.getPathParametersService().setJointRelativeAcceleration(1.0);
+	my_iiwa.getPathParametersService().setOverrideJointAcceleration(3.5);
 }
 
 bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
@@ -89,13 +88,24 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	waypoints_to.push_back(req.pose_grip);
 	double achieved = move_group.computeCartesianPath(waypoints_to,
 							  eef_step, jump_threshold, trajectory);
+	if (achieved < 1 && achieved > 0) {
+		ROS_ERROR("only achieved to compute %f of the requested path", achieved);
+		resp.success = false;
+		return true;
+	} else if (achieved <= 0) {
+		ROS_ERROR("path planning completely failed");
+		resp.success = false;
+		return true;
+	}
+
 	my_plan.trajectory_= trajectory;
 
-	move_group.execute(my_plan);
-	// if (!success) {
-	//	resp.success = false;
-	//	return true;
-	// }
+	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+	if (!success) {
+		ROS_ERROR("path execution failed");
+		resp.success = false;
+		return true;
+	}
 
 	if (req.gripper_close)
 		close_gripper();
@@ -108,11 +118,50 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	move_group.computeCartesianPath(waypoints_away, eef_step, jump_threshold, trajectory);
 	my_plan.trajectory_= trajectory;
 
-	move_group.execute(my_plan);
-	// if (!success) {
-	//	resp.success = false;
-	//	return true;
-	// }
+	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+	if (!success) {
+		ROS_ERROR("path execution failed");
+		resp.success = false;
+		return true;
+	}
+
+	resp.success = true;
+	return true;
+}
+
+bool TrajectorySampler::move_lin(rll_moveit_testing::MoveLin::Request &req,
+				 rll_moveit_testing::MoveLin::Response &resp)
+{
+	bool success;
+	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+	std::vector<geometry_msgs::Pose> waypoints;
+	moveit_msgs::RobotTrajectory trajectory;
+	const double eef_step = 0.001;
+	const double jump_threshold = 1000.0;
+
+	ROS_INFO("Lin motion requested");
+	move_group.setStartStateToCurrentState();
+	waypoints.push_back(req.pose);
+	double achieved = move_group.computeCartesianPath(waypoints,
+							  eef_step, jump_threshold, trajectory);
+	if (achieved < 1 && achieved > 0) {
+		ROS_ERROR("only achieved to compute %f of the requested path", achieved);
+		resp.success = false;
+		return true;
+	} else if (achieved <= 0) {
+		ROS_ERROR("path planning completely failed");
+		resp.success = false;
+		return true;
+	}
+
+	my_plan.trajectory_= trajectory;
+
+	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+	if (!success) {
+		ROS_ERROR("path execution failed");
+		resp.success = false;
+		return true;
+	}
 
 	resp.success = true;
 	return true;
@@ -217,6 +266,7 @@ int main (int argc, char **argv)
 	ros::ServiceServer service_job = nh.advertiseService("job_env", &TrajectorySampler::run_job, &plan_sampler);
 	ros::ServiceServer service_idle = nh.advertiseService("job_idle", &TrajectorySampler::idle, &plan_sampler);
 	ros::ServiceServer pick_place = nh.advertiseService("pick_place", &TrajectorySampler::pick_place, &plan_sampler);
+	ros::ServiceServer move_lin = nh.advertiseService("move_lin", &TrajectorySampler::move_lin, &plan_sampler);
 	ROS_INFO("Simple Moveit Interface started");
 
 	ros::waitForShutdown();

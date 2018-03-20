@@ -26,6 +26,7 @@
 
 #include <rll_worker/JobEnv.h>
 #include <rll_moveit_testing/PickPlace.h>
+#include <rll_moveit_testing/MoveLin.h>
 #include <schunk_gripper_egl90/MoveGrip.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 
@@ -33,9 +34,14 @@ class TrajectorySampler
 {
 public:
 	explicit TrajectorySampler(ros::NodeHandle nh);
-	bool run_job(rll_worker::JobEnv::Request &req, rll_worker::JobEnv::Response &resp);
-	bool idle(rll_worker::JobEnv::Request &req, rll_worker::JobEnv::Response &resp);
-	bool pick_place(rll_moveit_testing::PickPlace::Request &req, rll_moveit_testing::PickPlace::Response &resp);
+	bool run_job(rll_worker::JobEnv::Request &req,
+		     rll_worker::JobEnv::Response &resp);
+	bool idle(rll_worker::JobEnv::Request &req,
+		  rll_worker::JobEnv::Response &resp);
+	bool pick_place(rll_moveit_testing::PickPlace::Request &req,
+			rll_moveit_testing::PickPlace::Response &resp);
+	bool move_lin(rll_moveit_testing::MoveLin::Request &req,
+		      rll_moveit_testing::MoveLin::Response &resp);
 	void resetToHome(bool info = true);
 	void close_gripper();
 	void open_gripper();
