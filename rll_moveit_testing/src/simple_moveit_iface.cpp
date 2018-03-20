@@ -19,12 +19,16 @@
 
 #include <simple_moveit_iface.h>
 
+// TODO: incorporate "rosservice call /iiwa_2/configuration/pathParameters "joint_relative_velocity: 1.0
+// joint_relative_acceleration: 1.0
+// override_joint_acceleration: 3.5""
+
 TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	: move_group(PLANNING_GROUP)
 {
 	// configure planner
 	move_group.setPlannerId("RRTConnectkConfigDefault");
-	move_group.setPlanningTime(0.5);
+	move_group.setPlanningTime(2.0);
 	// slow down movement of the robot
 	move_group.setMaxVelocityScalingFactor(0.5);
 
@@ -79,72 +83,39 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	const double eef_step = 0.001;
 	const double jump_threshold = 1000.0;
 
-	// if (my_iiwa.getRobotIsConnected()) {
-		ROS_INFO("Moving above target");
-		move_group.setStartStateToCurrentState();
-		waypoints_to.push_back(req.pose_above);
-		waypoints_to.push_back(req.pose_grip);
-		move_group.setPoseTarget(req.pose_grip);
-		move_group.computeCartesianPath(waypoints_to, eef_step, jump_threshold, trajectory);
-		my_plan.trajectory_= trajectory;
+	ROS_INFO("Moving above target");
+	move_group.setStartStateToCurrentState();
+	waypoints_to.push_back(req.pose_above);
+	waypoints_to.push_back(req.pose_grip);
+	double achieved = move_group.computeCartesianPath(waypoints_to,
+							  eef_step, jump_threshold, trajectory);
+	my_plan.trajectory_= trajectory;
 
-		move_group.execute(my_plan);
-		// if (!success) {
-		//	resp.success = false;
-		//	return true;
-		// }
-
-		if (req.gripper_close)
-			close_gripper();
-		else
-			open_gripper();
-
-		ROS_INFO("Moving above grip position");
-		move_group.setStartStateToCurrentState();
-		waypoints_away.push_back(req.pose_above);
-		move_group.setPoseTarget(req.pose_above);
-		move_group.computeCartesianPath(waypoints_away, eef_step, jump_threshold, trajectory);
-		my_plan.trajectory_= trajectory;
-
-		move_group.execute(my_plan);
-		// if (!success) {
-		//	resp.success = false;
-		//	return true;
-		// }
-
-	// } else {
-	//	ROS_WARN_STREAM("Robot is not connected...");
+	move_group.execute(my_plan);
+	// if (!success) {
 	//	resp.success = false;
+	//	return true;
+	// }
+
+	if (req.gripper_close)
+		close_gripper();
+	else
+		open_gripper();
+
+	ROS_INFO("Moving above grip position");
+	move_group.setStartStateToCurrentState();
+	waypoints_away.push_back(req.pose_above);
+	move_group.computeCartesianPath(waypoints_away, eef_step, jump_threshold, trajectory);
+	my_plan.trajectory_= trajectory;
+
+	move_group.execute(my_plan);
+	// if (!success) {
+	//	resp.success = false;
+	//	return true;
 	// }
 
 	resp.success = true;
 	return true;
-}
-
-
-bool TrajectorySampler::getTargets()
-{
-	bool got_targets = false;
-
-	ros::param::get("target_1_spawn_location/x", target_1.position.x);
-	ros::param::get("target_1_spawn_location/y", target_1.position.y);
-	ros::param::get("target_1_spawn_location/z", target_1.position.z);
-	ros::param::get("target_2_spawn_location/x", target_2.position.x);
-	ros::param::get("target_2_spawn_location/y", target_2.position.y);
-	ros::param::get("target_2_spawn_location/z", target_2.position.z);
-
-	target_1.orientation.x = 0.0;
-	target_1.orientation.y = 1.0;
-	target_1.orientation.z = 0.0;
-	target_1.orientation.w = 0.0;
-	target_2.orientation.x = 0.0;
-	target_2.orientation.y = 1.0;
-	target_2.orientation.z = 0.0;
-	target_2.orientation.w = 0.0;
-
-	got_targets = true;
-
-	return got_targets;
 }
 
 bool TrajectorySampler::runTrajectory(bool info)

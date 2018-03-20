@@ -49,7 +49,6 @@ private:
 
 	iiwa_ros::iiwaRos my_iiwa;
 
-	bool getTargets();
 	bool runTrajectory(bool info = true);
 	int move_grip(float speed, float current);
 	int acknowledge();
