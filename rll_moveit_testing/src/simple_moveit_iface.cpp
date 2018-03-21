@@ -19,8 +19,11 @@
 
 #include <simple_moveit_iface.h>
 
+double cartesian_velocity = 0.05; //in m/s
+double cartesian_acceleration = 0.1; //in m/s²
+
 TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
-	: move_group(PLANNING_GROUP)
+	: move_group(PLANNING_GROUP), moveit_wrapper(PLANNING_GROUP)
 {
 	// configure planner
 	move_group.setPlannerId("RRTConnectkConfigDefault");
@@ -38,6 +41,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	else
 		ee_link = "iiwa_gripper_link_ee";
 	move_group.setEndEffectorLink(ee_link);
+  moveit_wrapper.setTCP(ee_link);
 
 	my_iiwa.init();
 	my_iiwa.getPathParametersService().setJointRelativeVelocity(1.0);
@@ -77,6 +81,7 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	bool success;
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 	std::vector<geometry_msgs::Pose> waypoints_to;
+  std::vector<geometry_msgs::Pose> waypoints_grip;
 	std::vector<geometry_msgs::Pose> waypoints_away;
 	moveit_msgs::RobotTrajectory trajectory;
 	const double eef_step = 0.001;
@@ -84,8 +89,7 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 
 	ROS_INFO("Moving above target");
 	move_group.setStartStateToCurrentState();
-	waypoints_to.push_back(req.pose_above);
-	waypoints_to.push_back(req.pose_grip);
+	waypoints_to.push_back(req.pose_above);	
 	double achieved = move_group.computeCartesianPath(waypoints_to,
 							  eef_step, jump_threshold, trajectory);
 	if (achieved < 1 && achieved > 0) {
@@ -97,6 +101,13 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 		resp.success = false;
 		return true;
 	}
+	
+	auto error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
+  if (!error) {
+    ROS_ERROR("cartesian time parametrization failed");
+		resp.success = false;
+		return true;
+  }  
 
 	my_plan.trajectory_= trajectory;
 
@@ -106,6 +117,39 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 		resp.success = false;
 		return true;
 	}
+	
+	ROS_INFO("Moving to grip position");
+	move_group.setStartStateToCurrentState();
+	waypoints_grip.push_back(req.pose_grip);
+	achieved = move_group.computeCartesianPath(waypoints_grip,
+							  eef_step, jump_threshold, trajectory);
+	if (achieved < 1 && achieved > 0) {
+		ROS_ERROR("only achieved to compute %f of the requested path", achieved);
+		resp.success = false;
+		return true;
+	} else if (achieved <= 0) {
+		ROS_ERROR("path planning completely failed");
+		resp.success = false;
+		return true;
+	}
+	
+	error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
+  if (!error) {
+    ROS_ERROR("cartesian time parametrization failed");
+		resp.success = false;
+		return true;
+  }  
+
+	my_plan.trajectory_= trajectory;
+
+	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+	if (!success) {
+		ROS_ERROR("path execution failed");
+		resp.success = false;
+		return true;
+	}
+	
+	
 
 	if (req.gripper_close)
 		close_gripper();
@@ -116,6 +160,14 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	move_group.setStartStateToCurrentState();
 	waypoints_away.push_back(req.pose_above);
 	move_group.computeCartesianPath(waypoints_away, eef_step, jump_threshold, trajectory);
+  
+  error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
+  if (!error) {
+    ROS_ERROR("cartesian time parametrization failed");
+		resp.success = false;
+		return true;
+  }
+  
 	my_plan.trajectory_= trajectory;
 
 	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -154,6 +206,13 @@ bool TrajectorySampler::move_lin(rll_moveit_testing::MoveLin::Request &req,
 		return true;
 	}
 
+	auto error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
+  if (!error) {
+    ROS_ERROR("cartesian time parametrization failed");
+		resp.success = false;
+		return true;
+  }
+	
 	my_plan.trajectory_= trajectory;
 
 	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
