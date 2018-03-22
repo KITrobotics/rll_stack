@@ -45,7 +45,8 @@
     <disable_collisions link1="iiwa_1_link_0" link2="iiwa_1_link_2" reason="Never" />
     <disable_collisions link1="iiwa_1_link_0" link2="iiwa_1_link_3" reason="Never" />
     <disable_collisions link1="iiwa_1_link_0" link2="iiwa_1_link_4" reason="Never" />
-    <disable_collisions link1="iiwa_1_link_0" link2="world" reason="Adjacent" />
+    <disable_collisions link1="iiwa_1_link_0" link2="iiwa_1_base_adapter" reason="Adjacent" />
+    <disable_collisions link1="iiwa_1_base_adapter" link2="world" reason="Adjacent" />
     <disable_collisions link1="iiwa_1_link_1" link2="iiwa_1_link_2" reason="Adjacent" />
     <disable_collisions link1="iiwa_1_link_1" link2="iiwa_1_link_3" reason="Never" />
     <disable_collisions link1="iiwa_1_link_1" link2="iiwa_1_link_4" reason="Never" />
@@ -77,4 +78,7 @@
     <disable_collisions link1="wall_left" link2="wall_right" reason="Never" />
     <disable_collisions link1="wall_left" link2="world" reason="Adjacent" />
     <disable_collisions link1="wall_right" link2="world" reason="Adjacent" />
+    <disable_collisions link1="iiwa_1_camera" link2="roboception_base" reason="Adjacent" />
+    <disable_collisions link1="iiwa_1_camera" link2="wall_front" reason="Adjacent" />
+    <disable_collisions link1="iiwa_1_camera" link2="wall_right" reason="Adjacent" />
 </robot>

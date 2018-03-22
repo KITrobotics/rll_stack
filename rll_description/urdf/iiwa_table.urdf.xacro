@@ -4,11 +4,9 @@
 
   <!-- Import Rviz colors -->
   <xacro:include filename="$(find iiwa_description)/urdf/materials.xacro" />
-  <!--Import the iiwa7 macro -->
   <xacro:include filename="$(find iiwa_description)/urdf/iiwa7.xacro"/>
-  <!--Import the schunk gripper egl90  -->
   <xacro:include filename="$(find schunk_gripper_egl90)/urdf/egl90_macro.xacro"/>
-
+  <xacro:include filename="$(find rc_visard_description)/urdf/rc_visard_160.xacro"/>
 
 
   <!--  Arguments for the iiwa7 macro  -->
@@ -49,7 +47,7 @@
 
   <!-- virtual walls
        Every wall is a link which does not collide with a different wall or the collision link of the steel plate -->
-  
+
   <joint name="wall_joint1" type="fixed">
     <parent link="world" />
     <child link="wall_front" />
@@ -152,9 +150,30 @@
     <static>true</static>
   </gazebo>
 
-  <!-- Here we insert an iiwa7 robot in the scene, it's origin is just on top of the box previously defined. -->
-  <xacro:iiwa7 hardware_interface="$(arg hardware_interface)" robot_name="$(arg robot_name)" parent="world">
-    <origin xyz="0 0 0" rpy="0 0 0"/>
+  <joint name="base_adapter_joint" type="fixed">
+    <parent link="world" />
+    <child link="$(arg robot_name)_base_adapter" />
+    <origin xyz="-0.2 0 0" rpy="0 0 0"/>
+  </joint>
+  <link name="$(arg robot_name)_base_adapter">
+    <visual>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.02" radius="0.16"/>
+      </geometry>
+      <material name="steel" />
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.01" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.02" radius="0.16"/>
+      </geometry>
+    </collision>
+  </link>
+
+  <!-- Here we insert an iiwa7 robot in the scene, it's origin is on top of the adapter. -->
+  <xacro:iiwa7 hardware_interface="$(arg hardware_interface)" robot_name="$(arg robot_name)" parent="$(arg robot_name)_base_adapter">
+    <origin xyz="0 0 0.02" rpy="0 0 0"/>
   </xacro:iiwa7>
 
   <!-- Here we insert a schunk gripper in the scene -->
@@ -193,5 +212,30 @@
     <origin xyz="0 0 0.248" rpy="0 0 0"/>
   </joint>
   <link name="$(arg robot_name)_gripper_link_ee"/>
+
+  <joint name="roboception_base_joint" type="fixed">
+    <parent link="world" />
+    <child link="roboception_base" />
+    <origin xyz="0.52 0.72 0.74" rpy="0 0 ${135 * PI / 180}"/>
+  </joint>
+  <link name="roboception_base">
+    <visual>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.08" radius="0.03"/>
+      </geometry>
+      <material name="steel" />
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry>
+        <cylinder length="0.08" radius="0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <xacro:rc_160 parent="roboception_base" prefix="$(arg robot_name)_">
+    <origin xyz="-0.08 0.03 0.1" rpy="${-135 * PI / 180} 0 0"/>
+  </xacro:rc_160>
+
 
 </robot>
