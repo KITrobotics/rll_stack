@@ -27,7 +27,9 @@
 #include <rll_worker/JobEnv.h>
 #include <rll_moveit_testing/PickPlace.h>
 #include <rll_moveit_testing/MoveLin.h>
+#include <rll_moveit_testing/MoveJoints.h>
 #include <schunk_gripper_egl90/MoveGrip.h>
+#include <schunk_gripper_egl90/MovePos.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 
 class TrajectorySampler
@@ -42,6 +44,8 @@ public:
 			rll_moveit_testing::PickPlace::Response &resp);
 	bool move_lin(rll_moveit_testing::MoveLin::Request &req,
 		      rll_moveit_testing::MoveLin::Response &resp);
+	bool move_joints(rll_moveit_testing::MoveJoints::Request &req,
+			 rll_moveit_testing::MoveJoints::Response &resp);
 	void resetToHome(bool info = true);
 	void close_gripper();
 	void open_gripper();
@@ -56,8 +60,11 @@ private:
 	iiwa_ros::iiwaRos my_iiwa;
 
 	bool runTrajectory(bool info = true);
-	int move_grip(float speed, float current);
-	int acknowledge();
+	int gripper_reference_motion();
+	int gripper_move_grip(float speed, float current);
+	int gripper_stop();
+	int gripper_move_pos(float pos);
+	int gripper_acknowledge();
 };
 
 #endif  // RLL_TRAJECTORY_SAMPLER_H

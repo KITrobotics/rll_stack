@@ -65,6 +65,7 @@ add_service_files(
   FILES
   PickPlace.srv
   MoveLin.srv
+  MoveJoints.srv
 )
 
 ## Generate actions in the 'action' folder

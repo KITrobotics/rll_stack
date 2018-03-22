@@ -25,6 +25,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	// configure planner
 	move_group.setPlannerId("RRTConnectkConfigDefault");
 	move_group.setPlanningTime(2.0);
+	move_group.setPoseReferenceFrame("world");
 	// slow down movement of the robot
 	move_group.setMaxVelocityScalingFactor(0.5);
 
@@ -43,6 +44,10 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	my_iiwa.getPathParametersService().setJointRelativeVelocity(1.0);
 	my_iiwa.getPathParametersService().setJointRelativeAcceleration(1.0);
 	my_iiwa.getPathParametersService().setOverrideJointAcceleration(3.5);
+
+	resetToHome();
+	gripper_reference_motion();
+	open_gripper();
 }
 
 bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
@@ -58,7 +63,7 @@ bool TrajectorySampler::idle(rll_worker::JobEnv::Request &req,
 {
 	// Send home position when idling
 	// This ensures that the brakes are not activated and the control cycle keeps running.
-	// If we the don't do this, the robot won't move when a trajectory is sent and the brakes are active.
+	// If we don't do this, the robot won't move when a trajectory is sent and the brakes are active.
 	if (my_iiwa.getRobotIsConnected()) {
 			resetToHome(false);
 			open_gripper();
@@ -167,6 +172,50 @@ bool TrajectorySampler::move_lin(rll_moveit_testing::MoveLin::Request &req,
 	return true;
 }
 
+bool TrajectorySampler::move_joints(rll_moveit_testing::MoveJoints::Request &req,
+				    rll_moveit_testing::MoveJoints::Response &resp)
+{
+	bool success;
+	std::vector<double> joints;
+	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
+
+	ROS_INFO("Joint motion requested");
+
+	move_group.getCurrentState()->copyJointGroupPositions(move_group.getCurrentState()->getRobotModel()->getJointModelGroup(move_group.getName()), joints);
+	joints[0] = req.joint_1;
+	joints[1] = req.joint_2;
+	joints[2] = req.joint_3;
+	joints[3] = req.joint_4;
+	joints[4] = req.joint_5;
+	joints[5] = req.joint_6;
+	joints[6] = req.joint_7;
+
+	move_group.setStartStateToCurrentState();
+	success = move_group.setJointValueTarget(joints);
+	if (!success) {
+		ROS_ERROR("requested joint values out of range");
+		resp.success = false;
+		return true;
+	}
+
+	success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+	if (!success) {
+		ROS_ERROR("path planning failed");
+		resp.success = false;
+		return true;
+	}
+
+	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+	if (!success) {
+		ROS_ERROR("path execution failed");
+		resp.success = false;
+		return true;
+	}
+
+	resp.success = true;
+	return true;
+}
+
 bool TrajectorySampler::runTrajectory(bool info)
 {
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
@@ -182,9 +231,6 @@ bool TrajectorySampler::runTrajectory(bool info)
 		if (info)
 			ROS_INFO("Plan execution result: %s",
 				 success_plan ? "SUCCEEDED" : "FAILED");
-
-		// stay a little a the target
-		ros::Duration(1.0).sleep();
 	} else {
 		ROS_WARN("Not executing because planning failed");
 		return false;
@@ -195,17 +241,33 @@ bool TrajectorySampler::runTrajectory(bool info)
 
 void TrajectorySampler::close_gripper()
 {
-	move_grip(-80.0, 0.3);
-	acknowledge();
+	gripper_move_grip(-80.0, 0.3);
+	gripper_acknowledge();
 }
 
 void TrajectorySampler::open_gripper()
 {
-	move_grip(80.0, 0.3);
-	acknowledge();
+	gripper_move_pos(81.0);
+	gripper_acknowledge();
 }
 
-int TrajectorySampler::move_grip(float speed, float current)
+int TrajectorySampler::gripper_reference_motion()
+{
+	ros::NodeHandle n_ref_mot;
+	ros::ServiceClient c_ref_mot = n_ref_mot.serviceClient<std_srvs::Trigger>("gripper_egl_90/reference_motion");
+	std_srvs::Trigger srv;
+	if (c_ref_mot.call(srv))
+	{
+	  ROS_DEBUG("gripper: oving to reference position...");
+	}
+	else
+	{
+	  ROS_ERROR("gripper: failed to call service reference motion");
+	  return 1;
+	}
+}
+
+int TrajectorySampler::gripper_move_grip(float speed, float current)
 {
 	ros::NodeHandle n_move_grip;
 	ros::ServiceClient c_move_grip = n_move_grip.serviceClient<schunk_gripper_egl90::MoveGrip>("gripper_egl_90/move_grip");
@@ -215,12 +277,42 @@ int TrajectorySampler::move_grip(float speed, float current)
 	if (c_move_grip.call(srv)) {
 	  ROS_INFO("Moving the gripper fingers...");
 	} else {
-	  ROS_ERROR("Failed to call service move_grip");
+	  ROS_ERROR("gripper: ailed to call service move_grip");
 	  return 1;
 	}
 }
 
-int TrajectorySampler::acknowledge()
+int TrajectorySampler::gripper_stop()
+{
+	ros::NodeHandle n_stop;
+	ros::ServiceClient c_stop = n_stop.serviceClient<std_srvs::Trigger>("gripper_egl_90/stop");
+	std_srvs::Trigger srv;
+	if (c_stop.call(srv)) {
+	  ROS_INFO("Stopping gripper...");
+	} else {
+	  ROS_ERROR("gripper: failed to call service stop");
+	  return 1;
+	}
+}
+
+int TrajectorySampler::gripper_move_pos(float pos)
+{
+	ros::NodeHandle n_move_pos;
+	ros::ServiceClient c_move_pos = n_move_pos.serviceClient<schunk_gripper_egl90::MovePos>("gripper_egl_90/move_pos");
+	schunk_gripper_egl90::MovePos srv;
+	srv.request.position = pos;
+	if (c_move_pos.call(srv))
+	{
+	  ROS_INFO("gripper: moving to an specific position...");
+	}
+	else
+	{
+	  ROS_ERROR("gripper: failed to call service move_pos");
+	  return 1;
+	}
+}
+
+int TrajectorySampler::gripper_acknowledge()
 {
 	ros::NodeHandle n_ack;
 	ros::ServiceClient c_ack = n_ack.serviceClient<std_srvs::Trigger>("gripper_egl_90/acknowledge");
@@ -231,7 +323,7 @@ int TrajectorySampler::acknowledge()
 	}
 	else
 	{
-	  ROS_ERROR("Failed to call service acknowledge");
+	  ROS_ERROR("gripper: failed to call service acknowledge");
 	  return 1;
 	}
 }
@@ -260,13 +352,11 @@ int main (int argc, char **argv)
 
 	TrajectorySampler plan_sampler(nh);
 
-	plan_sampler.resetToHome();
-	plan_sampler.open_gripper();
-
 	ros::ServiceServer service_job = nh.advertiseService("job_env", &TrajectorySampler::run_job, &plan_sampler);
 	ros::ServiceServer service_idle = nh.advertiseService("job_idle", &TrajectorySampler::idle, &plan_sampler);
 	ros::ServiceServer pick_place = nh.advertiseService("pick_place", &TrajectorySampler::pick_place, &plan_sampler);
 	ros::ServiceServer move_lin = nh.advertiseService("move_lin", &TrajectorySampler::move_lin, &plan_sampler);
+	ros::ServiceServer move_joints = nh.advertiseService("move_joints", &TrajectorySampler::move_joints, &plan_sampler);
 	ROS_INFO("Simple Moveit Interface started");
 
 	ros::waitForShutdown();
