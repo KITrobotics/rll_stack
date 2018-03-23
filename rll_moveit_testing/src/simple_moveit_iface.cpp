@@ -19,8 +19,8 @@
 
 #include <simple_moveit_iface.h>
 
-double cartesian_velocity = 0.05; //in m/s
-double cartesian_acceleration = 0.1; //in m/s²
+double cartesian_velocity = 0.25; //in m/s
+double cartesian_acceleration = 0.5; //in m/s²
 
 TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	: move_group(PLANNING_GROUP), moveit_wrapper(PLANNING_GROUP)
@@ -42,14 +42,18 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	else
 		ee_link = "iiwa_gripper_link_ee";
 	move_group.setEndEffectorLink(ee_link);
-  moveit_wrapper.setTCP(ee_link);
+	moveit_wrapper.setTCP(ee_link);
 
 	my_iiwa.init();
+
+	// do initial home reset already here, because if TCP is in a too upright
+	// position, setting the path parameters fails
+	resetToHome();
+
 	my_iiwa.getPathParametersService().setJointRelativeVelocity(1.0);
 	my_iiwa.getPathParametersService().setJointRelativeAcceleration(1.0);
 	my_iiwa.getPathParametersService().setOverrideJointAcceleration(3.5);
 
-	resetToHome();
 	gripper_reference_motion();
 	open_gripper();
 }
@@ -69,9 +73,9 @@ bool TrajectorySampler::idle(rll_worker::JobEnv::Request &req,
 	// This ensures that the brakes are not activated and the control cycle keeps running.
 	// If we don't do this, the robot won't move when a trajectory is sent and the brakes are active.
 	if (my_iiwa.getRobotIsConnected()) {
-			resetToHome(false);
-			open_gripper();
-			resp.job.status = rll_worker::JobStatus::SUCCESS;
+		resetToHome(false);
+		open_gripper();
+		resp.job.status = rll_worker::JobStatus::SUCCESS;
 	} else {
 		ROS_WARN_STREAM("Robot is not connected...");
 		resp.job.status = rll_worker::JobStatus::INTERNAL_ERROR;
@@ -86,7 +90,7 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	bool success;
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 	std::vector<geometry_msgs::Pose> waypoints_to;
-  std::vector<geometry_msgs::Pose> waypoints_grip;
+	std::vector<geometry_msgs::Pose> waypoints_grip;
 	std::vector<geometry_msgs::Pose> waypoints_away;
 	moveit_msgs::RobotTrajectory trajectory;
 	const double eef_step = 0.001;
@@ -94,7 +98,7 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 
 	ROS_INFO("Moving above target");
 	move_group.setStartStateToCurrentState();
-	waypoints_to.push_back(req.pose_above);	
+	waypoints_to.push_back(req.pose_above);
 	double achieved = move_group.computeCartesianPath(waypoints_to,
 							  eef_step, jump_threshold, trajectory);
 	if (achieved < 1 && achieved > 0) {
@@ -106,13 +110,13 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 		resp.success = false;
 		return true;
 	}
-	
+
 	auto error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
-  if (!error) {
-    ROS_ERROR("cartesian time parametrization failed");
+	if (!error) {
+		ROS_ERROR("cartesian time parametrization failed");
 		resp.success = false;
 		return true;
-  }  
+	}
 
 	my_plan.trajectory_= trajectory;
 
@@ -122,12 +126,12 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 		resp.success = false;
 		return true;
 	}
-	
+
 	ROS_INFO("Moving to grip position");
 	move_group.setStartStateToCurrentState();
 	waypoints_grip.push_back(req.pose_grip);
 	achieved = move_group.computeCartesianPath(waypoints_grip,
-							  eef_step, jump_threshold, trajectory);
+						   eef_step, jump_threshold, trajectory);
 	if (achieved < 1 && achieved > 0) {
 		ROS_ERROR("only achieved to compute %f of the requested path", achieved);
 		resp.success = false;
@@ -137,13 +141,13 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 		resp.success = false;
 		return true;
 	}
-	
+
 	error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
-  if (!error) {
-    ROS_ERROR("cartesian time parametrization failed");
+	if (!error) {
+		ROS_ERROR("cartesian time parametrization failed");
 		resp.success = false;
 		return true;
-  }  
+	}
 
 	my_plan.trajectory_= trajectory;
 
@@ -153,8 +157,8 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 		resp.success = false;
 		return true;
 	}
-	
-	
+
+
 
 	if (req.gripper_close)
 		close_gripper();
@@ -165,14 +169,14 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	move_group.setStartStateToCurrentState();
 	waypoints_away.push_back(req.pose_above);
 	move_group.computeCartesianPath(waypoints_away, eef_step, jump_threshold, trajectory);
-  
-  error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
-  if (!error) {
-    ROS_ERROR("cartesian time parametrization failed");
+
+	error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
+	if (!error) {
+		ROS_ERROR("cartesian time parametrization failed");
 		resp.success = false;
 		return true;
-  }
-  
+	}
+
 	my_plan.trajectory_= trajectory;
 
 	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -212,12 +216,12 @@ bool TrajectorySampler::move_lin(rll_moveit_testing::MoveLin::Request &req,
 	}
 
 	auto error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
-  if (!error) {
-    ROS_ERROR("cartesian time parametrization failed");
+	if (!error) {
+		ROS_ERROR("cartesian time parametrization failed");
 		resp.success = false;
 		return true;
-  }
-	
+	}
+
 	my_plan.trajectory_= trajectory;
 
 	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -264,6 +268,13 @@ bool TrajectorySampler::move_joints(rll_moveit_testing::MoveJoints::Request &req
 		return true;
 	}
 
+	auto error = moveit_wrapper.parametrize_time(my_plan.trajectory_, 1, 1);
+	if (!error) {
+		ROS_ERROR("cartesian time parametrization failed");
+		resp.success = false;
+		return true;
+	}
+
 	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 	if (!success) {
 		ROS_ERROR("path execution failed");
@@ -285,6 +296,12 @@ bool TrajectorySampler::runTrajectory(bool info)
 		ROS_INFO("Planning result: %s",
 			 success_plan ? "SUCCEEDED" : "FAILED");
 
+	auto error = moveit_wrapper.parametrize_time(my_plan.trajectory_, 1, 1);
+	if (!error) {
+		ROS_ERROR("cartesian time parametrization failed");
+		return false;
+	}
+
 	if (success_plan) {
 		success_plan = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 		if (info)
@@ -300,7 +317,7 @@ bool TrajectorySampler::runTrajectory(bool info)
 
 void TrajectorySampler::close_gripper()
 {
-	gripper_move_grip(-80.0, 0.3);
+	gripper_move_grip(-80.0, 0.25);
 	gripper_acknowledge();
 }
 
@@ -317,12 +334,12 @@ int TrajectorySampler::gripper_reference_motion()
 	std_srvs::Trigger srv;
 	if (c_ref_mot.call(srv))
 	{
-	  ROS_DEBUG("gripper: oving to reference position...");
+		ROS_DEBUG("gripper: oving to reference position...");
 	}
 	else
 	{
-	  ROS_ERROR("gripper: failed to call service reference motion");
-	  return 1;
+		ROS_ERROR("gripper: failed to call service reference motion");
+		return 1;
 	}
 }
 
@@ -334,10 +351,10 @@ int TrajectorySampler::gripper_move_grip(float speed, float current)
 	srv.request.speed = speed;
 	srv.request.current = current;
 	if (c_move_grip.call(srv)) {
-	  ROS_INFO("Moving the gripper fingers...");
+		ROS_INFO("Moving the gripper fingers...");
 	} else {
-	  ROS_ERROR("gripper: ailed to call service move_grip");
-	  return 1;
+		ROS_ERROR("gripper: ailed to call service move_grip");
+		return 1;
 	}
 }
 
@@ -347,10 +364,10 @@ int TrajectorySampler::gripper_stop()
 	ros::ServiceClient c_stop = n_stop.serviceClient<std_srvs::Trigger>("gripper_egl_90/stop");
 	std_srvs::Trigger srv;
 	if (c_stop.call(srv)) {
-	  ROS_INFO("Stopping gripper...");
+		ROS_INFO("Stopping gripper...");
 	} else {
-	  ROS_ERROR("gripper: failed to call service stop");
-	  return 1;
+		ROS_ERROR("gripper: failed to call service stop");
+		return 1;
 	}
 }
 
@@ -362,12 +379,12 @@ int TrajectorySampler::gripper_move_pos(float pos)
 	srv.request.position = pos;
 	if (c_move_pos.call(srv))
 	{
-	  ROS_INFO("gripper: moving to an specific position...");
+		ROS_INFO("gripper: moving to an specific position...");
 	}
 	else
 	{
-	  ROS_ERROR("gripper: failed to call service move_pos");
-	  return 1;
+		ROS_ERROR("gripper: failed to call service move_pos");
+		return 1;
 	}
 }
 
@@ -378,12 +395,12 @@ int TrajectorySampler::gripper_acknowledge()
 	std_srvs::Trigger srv;
 	if (c_ack.call(srv))
 	{
-	  ROS_INFO("gripper: Acknowledging");
+		ROS_INFO("gripper: Acknowledging");
 	}
 	else
 	{
-	  ROS_ERROR("gripper: failed to call service acknowledge");
-	  return 1;
+		ROS_ERROR("gripper: failed to call service acknowledge");
+		return 1;
 	}
 }
 
