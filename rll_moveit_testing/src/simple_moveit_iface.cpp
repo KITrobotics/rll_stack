@@ -32,6 +32,8 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	// slow down movement of the robot
 	move_group.setMaxVelocityScalingFactor(0.5);
 
+	gripper_open = false;
+
 	std::string ee_link;
 	std::string ns = ros::this_node::getNamespace();
 	ROS_INFO("starting in ns %s", ns.c_str());
@@ -74,7 +76,10 @@ bool TrajectorySampler::idle(rll_worker::JobEnv::Request &req,
 	// If we don't do this, the robot won't move when a trajectory is sent and the brakes are active.
 	if (my_iiwa.getRobotIsConnected()) {
 		resetToHome(false);
-		open_gripper();
+		if (!gripper_open) {
+			open_gripper();
+			gripper_open = true;
+		}
 		resp.job.status = rll_worker::JobStatus::SUCCESS;
 	} else {
 		ROS_WARN_STREAM("Robot is not connected...");
@@ -319,6 +324,7 @@ void TrajectorySampler::close_gripper()
 {
 	gripper_move_grip(-80.0, 0.25);
 	gripper_acknowledge();
+	gripper_open = false;
 }
 
 void TrajectorySampler::open_gripper()
