@@ -25,12 +25,20 @@ import yaml
 import docker
 import pymongo
 import datetime
+import time
 
 from rll_worker.srv import *
 from rll_worker.msg import *
 
+# the iiwas activate their brakes around 45 minutes of inactivity
+# work around this by sending idle at least every iiwa_timeout
+iiwa_timeout = 0.3 * 3600
+idle_start = time.time()
+
 def run_job(jobs_collection, dClient, ns):
     # rospy.loginfo("searching for new job in namespace '%s'", ns)
+    global idle_start
+    job_idle = rospy.ServiceProxy("job_idle", JobEnv)
 
     # TODO: use indexing
     job = jobs_collection.find_one_and_update({"status": "submitted"},
@@ -41,13 +49,16 @@ def run_job(jobs_collection, dClient, ns):
 
     if job == None:
         # rospy.loginfo("no job in queue")
-        rospy.wait_for_service("job_idle")
-        try:
-            job_idle = rospy.ServiceProxy("job_idle", JobEnv)
-            resp = job_idle(True)
-        except rospy.ServiceException, e:
-            rospy.loginfo("service call failed: %s", e)
-        # rospy.sleep(1.)
+
+        if (time.time() - idle_start) > iiwa_timeout:
+            rospy.wait_for_service("job_idle")
+            try:
+                resp = job_idle(True)
+            except rospy.ServiceException, e:
+                rospy.loginfo("service call failed: %s", e)
+            idle_start = time.time()
+        else:
+            rospy.sleep(0.1)
         return
 
     job_id = job["_id"]
@@ -100,7 +111,15 @@ def run_job(jobs_collection, dClient, ns):
                                                   "job_end": datetime.datetime.now(),
                                                   "job_result": job_result_codes_to_string(resp.job.status)}})
 
+    try:
+        resp = job_idle(True)
+    except rospy.ServiceException, e:
+        rospy.loginfo("service call failed: %s", e)
+
     rospy.loginfo("finished job with id '%s' in namespace '%s'", job_id, ns)
+
+    # reset time counter
+    idle_start = time.time()
 
 def job_result_codes_to_string(status):
     job_codes = {JobStatus.SUCCESS: "success", JobStatus.FAILURE: "failure",
