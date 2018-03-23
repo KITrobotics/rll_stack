@@ -4,7 +4,7 @@ FROM ros:kinetic-ros-base-xenial
 
 ARG ros_master_ip
 
-RUN apt-get update && apt-get install -y python-catkin-tools
+RUN apt-get update && apt-get install -y python-catkin-tools ros-kinetic-tf-conversions
 
 RUN useradd -ms /bin/bash rll_user
 SHELL ["/bin/bash", "-c"]
