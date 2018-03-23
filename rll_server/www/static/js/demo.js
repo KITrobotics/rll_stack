@@ -164,6 +164,7 @@ $(function() {
         $(jobMessages).text("");
         $(view_div).collapse("hide");
         $(form).collapse("show");
+        $("input:radio").prop('checked', false);
 
         var log = document.getElementById("log-embed");
         if (log != null)
