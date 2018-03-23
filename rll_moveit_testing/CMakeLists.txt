@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning_interface
   rll_worker
   schunk_gripper_egl90
+  moveit_wrapper
 )
 
 ## System dependencies are found with CMake's conventions

@@ -31,6 +31,7 @@
 #include <schunk_gripper_egl90/MoveGrip.h>
 #include <schunk_gripper_egl90/MovePos.h>
 #include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit_wrapper/moveit_wrapper.h>
 
 class TrajectorySampler
 {
@@ -58,6 +59,7 @@ private:
 	geometry_msgs::Pose target_1, target_2;
 
 	iiwa_ros::iiwaRos my_iiwa;
+  MoveItWrapper moveit_wrapper;
 
 	bool runTrajectory(bool info = true);
 	int gripper_reference_motion();
