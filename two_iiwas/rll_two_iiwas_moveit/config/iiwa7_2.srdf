@@ -81,4 +81,8 @@
     <disable_collisions link1="iiwa_2_camera" link2="roboception_base" reason="Adjacent" />
     <disable_collisions link1="iiwa_2_camera" link2="wall_front" reason="Adjacent" />
     <disable_collisions link1="iiwa_2_camera" link2="wall_right" reason="Adjacent" />
+    <disable_collisions link1="roboception_collision" link2="wall_front" reason="Adjacent" />
+    <disable_collisions link1="roboception_collision" link2="wall_right" reason="Adjacent" />
+    <disable_collisions link1="roboception_collision" link2="roboception_base" reason="Adjacent" />
+    <disable_collisions link1="roboception_collision" link2="iiwa_2_camera" reason="Adjacent" />
 </robot>

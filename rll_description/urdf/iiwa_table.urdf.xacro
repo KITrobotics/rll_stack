@@ -237,5 +237,20 @@
     <origin xyz="-0.08 0.03 0.1" rpy="${-135 * PI / 180} 0 0"/>
   </xacro:rc_160>
 
+  <joint name="roboception_collision_joint" type="fixed">
+    <parent link="world" />
+    <child link="roboception_collision" />
+    <origin xyz="0.52 0.72 0.74" rpy="0 0 ${135 * PI / 180}"/>
+  </joint>
+  <link name="roboception_collision">
+    <collision>
+      <origin xyz="-0.0 0.03 0.1" rpy="${-135 * PI / 180} 0 0"/>
+      <geometry>
+        <box size="0.30 0.13 0.10" rpy="0 0 0"/>
+      </geometry>
+      <material name="transparent" />
+    </collision>
+  </link>
+
 
 </robot>
