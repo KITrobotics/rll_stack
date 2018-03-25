@@ -57,10 +57,9 @@ private:
 	const std::string PLANNING_GROUP = "manipulator";
 	moveit::planning_interface::MoveGroupInterface move_group;
 	geometry_msgs::Pose target_1, target_2;
-	bool gripper_open;
 
 	iiwa_ros::iiwaRos my_iiwa;
-	MoveItWrapper moveit_wrapper;
+  MoveItWrapper moveit_wrapper;
 
 	bool runTrajectory(bool info = true);
 	int gripper_reference_motion();
