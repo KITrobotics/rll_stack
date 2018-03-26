@@ -1,36 +1,36 @@
 
 body {
-  background-color: #333;
-  font-size: 1.25rem;
+    background-color: #333;
+    font-size: 1.25rem;
 }
 
 *, *:before, *:after {
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
-  box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 html {
-  font-family: Helvetica, Arial, sans-serif;
-  background: #333;
-  -webkit-font-smoothing: antialiased;
+    font-family: Helvetica, Arial, sans-serif;
+    background: #333;
+    -webkit-font-smoothing: antialiased;
 }
 
 .vcenter {
-  min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
-  min-height: 100vh; /* These two lines are counted as one :-)       */
+    min-height: 100%;  /* Fallback for browsers do NOT support vh unit */
+    min-height: 100vh; /* These two lines are counted as one :-)       */
 
-  display: flex;
-  align-items: center;
+    display: flex;
+    align-items: center;
 }
 
 #page-wrapper {
-  width: 765px;
-  background: #FFFFFF;
-  padding: 1em;
-  margin: 1em auto;
-  border-top: 5px solid #04c87b;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.8);
+    width: 765px;
+    background: #FFFFFF;
+    padding: 1em;
+    margin: 1em auto;
+    border-top: 5px solid #04c87b;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.8);
 }
 
 #logs-view {
@@ -38,11 +38,12 @@ html {
 }
 
 #submit-form {
-    margin-left: 250px;
+    margin-left: 183px;
 }
 
 #project-intro {
-    margin-bottom: 1em;
+    margin-left: 2.2em;
+    margin-bottom: 0.5em;
 }
 
 #log-modal-dialog {
@@ -56,11 +57,11 @@ html {
 }
 
 h1 {
-  margin-top: 0;
+    margin-top: 0;
 }
 
 .field {
-  margin: 1em 0;
+    margin: 1em 0;
 }
 
 #project-list {
@@ -70,22 +71,25 @@ h1 {
 }
 
 #project-inputs {
-    margin-left: 0.5em;
+    border-radius: 6px;
+    border: 2px solid #c6c8ca;
+    padding-left: 10px;
+    margin-right: 178px;
 }
 
 label {
-  display: block;
-  margin-top: 0.2em;
-  margin-bottom: 0.5em;
+    display: block;
+    margin-top: 0.2em;
+    margin-bottom: 0.5em;
 }
 
 input {
-    margin-left: 2em;
+    margin-left: 5.2em;
     margin-bottom: 2em;
-  padding: 0.5em 2em;
-  font-size: 1.25rem;
-  border-radius: 3px;
-  border: 1px solid #D9D9D9;
+    padding: 0.5em 2em;
+    font-size: 1.25rem;
+    border-radius: 3px;
+    border: 1px solid #D9D9D9;
     cursor: pointer;
 }
 
@@ -102,91 +106,111 @@ input {
     user-select: none;
 }
 
+#tower-source {
+    margin-left: 1em;
+}
+
+#greetings-source {
+    margin-left: 3.5em;
+}
+
+a {
+    color: #02b3e4;
+}
+
 /* Hide the browser's default radio button */
 #project-list input {
-  position: absolute;
-  opacity: 0;
+    position: absolute;
+    opacity: 0;
 }
 
 /* Create a custom radio button */
 .checkmark {
-  position: absolute;
-  top: 0.2em;
-  left: 0;
-  height: 25px;
-  width: 25px;
-  background-color: #eee;
-  border-radius: 50%;
+    position: absolute;
+    top: 0.2em;
+    left: 0;
+    height: 25px;
+    width: 25px;
+    background-color: #eee;
+    border-radius: 50%;
 }
 
 /* On mouse-over, add a grey background color */
 .project-label:hover input ~ .checkmark {
-  background-color: #ccc;
+    background-color: #ccc;
 }
 
 /* When the radio button is checked, add a green background */
 .project-label input:checked ~ .checkmark {
-  background-color: #009682;
+    background-color: #ff5800;
 }
 
 /* Create the indicator (the dot/circle - hidden when not checked) */
 .checkmark:after {
-  content: "";
-  position: absolute;
-  display: none;
+    content: "";
+    position: absolute;
+    display: none;
 }
 
 /* Show the indicator (dot/circle) when checked */
 .project-label input:checked ~ .checkmark:after {
-  display: block;
+    display: block;
 }
 
 /* Style the indicator (dot/circle) */
 .project-label .checkmark:after {
-  top: 9px;
-  left: 9px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: white;
+    top: 9px;
+    left: 9px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: white;
 }
 
 textarea {
-  width: 100%;
-  height: 200px;
-  padding: 0.5em 0.5em;
-  border-radius: 3px;
-  border: 1px solid #D9D9D9;
+    width: 100%;
+    height: 200px;
+    padding: 0.5em 0.5em;
+    border-radius: 3px;
+    border: 1px solid #D9D9D9;
 }
 
 .success {
-  padding: 1em;
-  margin-bottom: 0.75rem;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-  color: #468847;
-  background-color: #dff0d8;
-  border: 1px solid #d6e9c6;
-  -webkit-border-radius: 4px;
-     -moz-border-radius: 4px;
-          border-radius: 4px;
+    padding: 1em;
+    margin-bottom: 0.75rem;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    color: #468847;
+    background-color: #dff0d8;
+    border: 1px solid #d6e9c6;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
 }
 
 .error {
-  padding: 1em;
-  margin-bottom: 0.75rem;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
-  color: #b94a48;
-  background-color: #f2dede;
-  border: 1px solid rgba(185, 74, 72, 0.3);
-  -webkit-border-radius: 4px;
-     -moz-border-radius: 4px;
-          border-radius: 4px;
+    padding: 1em;
+    margin-bottom: 0.75rem;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+    color: #b94a48;
+    background-color: #f2dede;
+    border: 1px solid rgba(185, 74, 72, 0.3);
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    border-radius: 4px;
+}
+
+#separator {
+    border-top: 1px solid #c6c8ca;
+    margin-left: 8em;
+    margin-right: 8em;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
 }
 
 #logo-kuka {
-    margin-top: 2.2em;
+    margin-top: 2em;
 }
 
 #logo-kit {
-    margin-top: 0.2em;
+    margin-top: 0.6em;
 }

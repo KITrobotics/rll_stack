@@ -30,30 +30,31 @@
           </button>
         </div>
 
-      <form id="submit-form" class="collapse show" action="./api/jobs" method="post">
-        <fieldset>
-          <input type="hidden" name="op" value="submit">
-          <input id="username" type="hidden" name="username" value="intersect_user_2">
-          <input id="password" type="hidden" name="secret" value="SET_YOUR_SECRET_HERE">
-          <div id="project-list">
-            Please choose a project:
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="git_url" value="https://gitlab.ipr.kit.edu/rll/tower_hanoi.git" id="defaultCheck1">
-              <label class="form-check-label" for="defaultCheck1">
-                Tower of Hanoi
-              </label>
+        <form id="submit-form" class="collapse show" action="./api/jobs" method="post">
+          <fieldset>
+            <input type="hidden" name="op" value="submit">
+            <input id="username" type="hidden" name="username" value="intersect_user_2">
+            <input id="password" type="hidden" name="secret" value="SET_YOUR_SECRET_HERE">
+            <div id="project-list">
+              <div id="project-intro">Please choose a project:</div>
+              <div id="project-inputs">
+                <label class="project-label">
+                  Tower of Hanoi<span id="tower-source">(<a href="https://gitlab.ipr.kit.edu/rll/tower_hanoi/blob/tower_hanoi/scripts/tower_hanoi.py" target="_blank">source code</a>)</span>
+                  <input type="radio" name="git_url" value="https://gitlab.ipr.kit.edu/rll/tower_hanoi.git">
+                  <span class="checkmark"></span>
+                </label>
+                <label class="project-label">
+                  Greetings<span id="greetings-source">(<a  href="https://gitlab.ipr.kit.edu/rll/greetings/blob/greetings/scripts/greetings.py" target="_blank">source code</a>)</span>
+                  <input type="radio" name="git_url" value="https://gitlab.ipr.kit.edu/rll/greetings.git">
+                  <span class="checkmark"></span>
+                </label>
+              </div>
             </div>
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="git_url" value="https://gitlab.ipr.kit.edu/rll/greetings.git" id="defaultCheck2">
-              <label class="form-check-label" for="defaultCheck2">
-                Greetings
-              </label>
-            </div>
-          </div>
-          <input type="submit" value="Submit" />
-        </fieldset>
-      </form>
+            <input type="submit" value="Submit" />
+          </fieldset>
+        </form>
 
+        <div id="separator"></div>
         <div class="row" id="partners">
           <div class="col-4">
             <div id="logo-kuka" class="thumbnail"><img class="img-responsive" alt="" src="./static/img/logo-KUKA.png" style="width:100%"/></div>
@@ -62,7 +63,7 @@
             <div id="logo-udacity" class="thumbnail"><img class="img-responsive" alt="" src="./static/img/logo-Udacity.png" style="width:100%"/></div>
           </div>
           <div class="col-4">
-            <div id="logo-kit" class="thumbnail"><img class="img-responsive" alt="" src="./static/img/logo-KIT.png" style="width:100%"/></div>
+            <div id="logo-kit" class="thumbnail"><img class="img-responsive" alt="" src="./static/img/logo-KIT.png" style="width:90%"/></div>
           </div>
         </div>
       </div>
@@ -110,7 +111,7 @@
 
     <script src="./static/js/jquery-3.3.1.min.js"></script>
     <script src="./static/js/bootstrap.bundle.min.js"></script>
-    <script src="./static/js/demo.js"></script>
+    <script src="./static/js/demo-intersect.js"></script>
 
   </body>
 </html>
