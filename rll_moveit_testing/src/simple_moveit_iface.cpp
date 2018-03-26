@@ -334,7 +334,7 @@ int TrajectorySampler::gripper_reference_motion()
 	std_srvs::Trigger srv;
 	if (c_ref_mot.call(srv))
 	{
-		ROS_DEBUG("gripper: oving to reference position...");
+		ROS_DEBUG("gripper: moving to reference position...");
 	}
 	else
 	{

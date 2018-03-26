@@ -124,6 +124,13 @@ a {
     opacity: 0;
 }
 
+#repo-url {
+    opacity: 1 !important;
+    margin-left: 0.4em;
+    width: 50%;
+    padding: 0.01em 0.4em;
+}
+
 /* Create a custom radio button */
 .checkmark {
     position: absolute;
