@@ -25,7 +25,7 @@ html {
 }
 
 #page-wrapper {
-    width: 765px;
+    /* width: 765px; */
     background: #FFFFFF;
     padding: 1em;
     margin: 1em auto;
@@ -38,7 +38,11 @@ html {
 }
 
 #submit-form {
-    margin-left: 183px;
+    /* margin-left: 183px; */
+}
+
+h1 {
+    font-size: 2.2rem;
 }
 
 #project-intro {
@@ -74,7 +78,7 @@ h1 {
     border-radius: 6px;
     border: 2px solid #c6c8ca;
     padding-left: 10px;
-    margin-right: 178px;
+    /* margin-right: 1px; */
 }
 
 label {
