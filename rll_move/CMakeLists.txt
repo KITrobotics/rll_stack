@@ -112,7 +112,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rll_moveit_testing
-   CATKIN_DEPENDS iiwa_ros rll_worker schunk_gripper_egl90
+   CATKIN_DEPENDS iiwa_ros rll_worker schunk_gripper_egl90 message_runtime rll_msgs
 #  DEPENDS system_lib
 )
 
