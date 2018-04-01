@@ -54,7 +54,8 @@ MoveIface::MoveIface(ros::NodeHandle nh)
 	my_iiwa.getPathParametersService().setJointRelativeAcceleration(1.0);
 	my_iiwa.getPathParametersService().setOverrideJointAcceleration(3.5);
 
-	gripper_reference_motion();
+	// necessary for position commands
+	// gripper_reference_motion();
 	open_gripper();
 }
 
@@ -296,11 +297,15 @@ bool MoveIface::runTrajectory(bool info)
 		ROS_INFO("Planning result: %s",
 			 success_plan ? "SUCCEEDED" : "FAILED");
 
-	auto error = moveit_wrapper.parametrize_time(my_plan.trajectory_, 1, 1);
-	if (!error) {
-		ROS_ERROR("cartesian time parametrization failed");
-		return false;
-	}
+	// auto error = moveit_wrapper.parametrize_time(my_plan.trajectory_, 1, 1);
+	// robot_trajectory::RobotTrajectory rt(move_group.getCurrentState()->getRobotModel(), PLANNING_GROUP);
+	// rt.setRobotTrajectoryMsg(*move_group.getCurrentState(), my_plan.trajectory_);
+	// if (!trajectory_processing::time_optimal_trajectory_generation::computeTimeStamps(rt, 1, 1)) {
+	//	ROS_ERROR("cartesian time parametrization failed");
+	//	return false;
+	// }
+
+	// ROS_INFO("time parametrization successfull");
 
 	if (success_plan) {
 		success_plan = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -317,14 +322,21 @@ bool MoveIface::runTrajectory(bool info)
 
 void MoveIface::close_gripper()
 {
-	gripper_move_grip(-80.0, 0.25);
+	gripper_move_grip(-80.0, 0.3);
 	gripper_acknowledge();
 }
 
 void MoveIface::open_gripper()
 {
-	gripper_move_pos(81.0);
+	// position-based variant
+	gripper_move_pos(75.0);
 	gripper_acknowledge();
+
+	// force-based
+	// gripper_move_grip(80.0, 0.25);
+	// gripper_acknowledge();
+	// gripper_stop();
+	// gripper_acknowledge();
 }
 
 int MoveIface::gripper_reference_motion()
@@ -433,6 +445,7 @@ int main (int argc, char **argv)
 	ros::ServiceServer pick_place = nh.advertiseService("pick_place", &MoveIface::pick_place, &plan_sampler);
 	ros::ServiceServer move_lin = nh.advertiseService("move_lin", &MoveIface::move_lin, &plan_sampler);
 	ros::ServiceServer move_joints = nh.advertiseService("move_joints", &MoveIface::move_joints, &plan_sampler);
+
 	ROS_INFO("RLL Move Interface started");
 
 	ros::waitForShutdown();
