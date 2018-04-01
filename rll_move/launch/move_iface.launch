@@ -10,14 +10,14 @@
   </include>
 
   <group if="$(arg all_robots)">
-    <node ns="iiwa_1" name="simple_moveit_iface" pkg="rll_moveit_testing" type="simple_moveit_iface" respawn="false" output="screen">
+    <node ns="iiwa_1" name="move_iface" pkg="rll_move" type="move_iface" respawn="false" output="screen">
     </node>
 
-    <node ns="iiwa_2" name="simple_moveit_iface" pkg="rll_moveit_testing" type="simple_moveit_iface" respawn="false" output="screen">
+    <node ns="iiwa_2" name="move_iface" pkg="rll_move" type="move_iface" respawn="false" output="screen">
     </node>
   </group>
 
-  <node unless="$(arg all_robots)" ns="$(arg robot)" name="simple_moveit_iface" pkg="rll_moveit_testing" type="simple_moveit_iface" respawn="false" output="screen">
+  <node unless="$(arg all_robots)" ns="$(arg robot)" name="move_iface" pkg="rll_move" type="move_iface" respawn="false" output="screen">
   </node>
 
 </launch>

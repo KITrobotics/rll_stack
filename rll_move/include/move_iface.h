@@ -17,41 +17,41 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RLL_TRAJECTORY_SAMPLER_H
-#define RLL_TRAJECTORY_SAMPLER_H
+#ifndef RLL_MOVE_IFACE_H
+#define RLL_MOVE_IFACE_H
 
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
 #include <iiwa_ros/iiwa_ros.h>
 
 #include <rll_worker/JobEnv.h>
-#include <rll_moveit_testing/PickPlace.h>
-#include <rll_moveit_testing/MoveLin.h>
-#include <rll_moveit_testing/MoveJoints.h>
+#include <rll_msgs/PickPlace.h>
+#include <rll_msgs/MoveLin.h>
+#include <rll_msgs/MoveJoints.h>
 #include <schunk_gripper_egl90/MoveGrip.h>
 #include <schunk_gripper_egl90/MovePos.h>
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_wrapper/moveit_wrapper.h>
 
-class TrajectorySampler
+class MoveIface
 {
 public:
-	explicit TrajectorySampler(ros::NodeHandle nh);
+	explicit MoveIface(ros::NodeHandle nh);
 	bool run_job(rll_worker::JobEnv::Request &req,
 		     rll_worker::JobEnv::Response &resp);
 	bool idle(rll_worker::JobEnv::Request &req,
 		  rll_worker::JobEnv::Response &resp);
-	bool pick_place(rll_moveit_testing::PickPlace::Request &req,
-			rll_moveit_testing::PickPlace::Response &resp);
-	bool move_lin(rll_moveit_testing::MoveLin::Request &req,
-		      rll_moveit_testing::MoveLin::Response &resp);
-	bool move_joints(rll_moveit_testing::MoveJoints::Request &req,
-			 rll_moveit_testing::MoveJoints::Response &resp);
+	bool pick_place(rll_msgs::PickPlace::Request &req,
+			rll_msgs::PickPlace::Response &resp);
+	bool move_lin(rll_msgs::MoveLin::Request &req,
+		      rll_msgs::MoveLin::Response &resp);
+	bool move_joints(rll_msgs::MoveJoints::Request &req,
+			 rll_msgs::MoveJoints::Response &resp);
 	void resetToHome(bool info = true);
 	void close_gripper();
 	void open_gripper();
 
-	~TrajectorySampler();
+	~MoveIface();
   
 private:
 	const std::string PLANNING_GROUP = "manipulator";
@@ -69,7 +69,7 @@ private:
 	int gripper_acknowledge();
 };
 
-#endif  // RLL_TRAJECTORY_SAMPLER_H
+#endif  // RLL_MOVE_IFACE_H
 
 /*
  * Local Variables:

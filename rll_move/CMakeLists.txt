@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(rll_moveit_testing)
+project(rll_move)
 
 add_compile_options(-std=c++11)
 
@@ -8,10 +8,6 @@ add_compile_options(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  message_generation
-  std_srvs
-  std_msgs
-  geometry_msgs
   iiwa_ros
   moveit_core
   moveit_ros_planning
@@ -19,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   rll_worker
   schunk_gripper_egl90
   moveit_wrapper
+  rll_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -62,12 +59,12 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  PickPlace.srv
-  MoveLin.srv
-  MoveJoints.srv
-)
+# add_service_files(
+#   FILES
+#   PickPlace.srv
+#   MoveLin.srv
+#   MoveJoints.srv
+# )
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -77,11 +74,11 @@ add_service_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs  # Or other packages containing msgs
-  geometry_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs  # Or other packages containing msgs
+#   geometry_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -115,7 +112,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rll_moveit_testing
-   CATKIN_DEPENDS rll_worker iiwa_ros schunk_gripper_egl90
+   CATKIN_DEPENDS iiwa_ros rll_worker schunk_gripper_egl90
 #  DEPENDS system_lib
 )
 
@@ -131,9 +128,9 @@ add_executable(trajectory_sampler src/trajectory_sampler.cpp)
 add_dependencies(trajectory_sampler iiwa_msgs_generate_messages_cpp)
 target_link_libraries(trajectory_sampler ${catkin_LIBRARIES})
 
-add_executable(simple_moveit_iface src/simple_moveit_iface.cpp)
-add_dependencies(simple_moveit_iface iiwa_msgs_generate_messages_cpp)
-target_link_libraries(simple_moveit_iface ${catkin_LIBRARIES})
+add_executable(move_iface src/move_iface.cpp)
+add_dependencies(move_iface iiwa_msgs_generate_messages_cpp)
+target_link_libraries(move_iface ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the

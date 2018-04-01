@@ -17,12 +17,12 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <simple_moveit_iface.h>
+#include <move_iface.h>
 
 double cartesian_velocity = 0.25; //in m/s
 double cartesian_acceleration = 0.5; //in m/s²
 
-TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
+MoveIface::MoveIface(ros::NodeHandle nh)
 	: move_group(PLANNING_GROUP), moveit_wrapper(PLANNING_GROUP)
 {
 	// configure planner
@@ -58,7 +58,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
 	open_gripper();
 }
 
-bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
+bool MoveIface::run_job(rll_worker::JobEnv::Request &req,
 				rll_worker::JobEnv::Response &resp)
 {
 	ROS_INFO("got job running request");
@@ -66,7 +66,7 @@ bool TrajectorySampler::run_job(rll_worker::JobEnv::Request &req,
 	return true;
 }
 
-bool TrajectorySampler::idle(rll_worker::JobEnv::Request &req,
+bool MoveIface::idle(rll_worker::JobEnv::Request &req,
 			     rll_worker::JobEnv::Response &resp)
 {
 	// Send home position when idling
@@ -84,8 +84,8 @@ bool TrajectorySampler::idle(rll_worker::JobEnv::Request &req,
 	return true;
 }
 
-bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
-				   rll_moveit_testing::PickPlace::Response &resp)
+bool MoveIface::pick_place(rll_msgs::PickPlace::Request &req,
+				   rll_msgs::PickPlace::Response &resp)
 {
 	bool success;
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
@@ -190,8 +190,8 @@ bool TrajectorySampler::pick_place(rll_moveit_testing::PickPlace::Request &req,
 	return true;
 }
 
-bool TrajectorySampler::move_lin(rll_moveit_testing::MoveLin::Request &req,
-				 rll_moveit_testing::MoveLin::Response &resp)
+bool MoveIface::move_lin(rll_msgs::MoveLin::Request &req,
+				 rll_msgs::MoveLin::Response &resp)
 {
 	bool success;
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
@@ -235,8 +235,8 @@ bool TrajectorySampler::move_lin(rll_moveit_testing::MoveLin::Request &req,
 	return true;
 }
 
-bool TrajectorySampler::move_joints(rll_moveit_testing::MoveJoints::Request &req,
-				    rll_moveit_testing::MoveJoints::Response &resp)
+bool MoveIface::move_joints(rll_msgs::MoveJoints::Request &req,
+				    rll_msgs::MoveJoints::Response &resp)
 {
 	bool success;
 	std::vector<double> joints;
@@ -286,7 +286,7 @@ bool TrajectorySampler::move_joints(rll_moveit_testing::MoveJoints::Request &req
 	return true;
 }
 
-bool TrajectorySampler::runTrajectory(bool info)
+bool MoveIface::runTrajectory(bool info)
 {
 	moveit::planning_interface::MoveGroupInterface::Plan my_plan;
 	bool success_plan;
@@ -315,19 +315,19 @@ bool TrajectorySampler::runTrajectory(bool info)
 	return true;
 }
 
-void TrajectorySampler::close_gripper()
+void MoveIface::close_gripper()
 {
 	gripper_move_grip(-80.0, 0.25);
 	gripper_acknowledge();
 }
 
-void TrajectorySampler::open_gripper()
+void MoveIface::open_gripper()
 {
 	gripper_move_pos(81.0);
 	gripper_acknowledge();
 }
 
-int TrajectorySampler::gripper_reference_motion()
+int MoveIface::gripper_reference_motion()
 {
 	ros::NodeHandle n_ref_mot;
 	ros::ServiceClient c_ref_mot = n_ref_mot.serviceClient<std_srvs::Trigger>("gripper_egl_90/reference_motion");
@@ -343,7 +343,7 @@ int TrajectorySampler::gripper_reference_motion()
 	}
 }
 
-int TrajectorySampler::gripper_move_grip(float speed, float current)
+int MoveIface::gripper_move_grip(float speed, float current)
 {
 	ros::NodeHandle n_move_grip;
 	ros::ServiceClient c_move_grip = n_move_grip.serviceClient<schunk_gripper_egl90::MoveGrip>("gripper_egl_90/move_grip");
@@ -358,7 +358,7 @@ int TrajectorySampler::gripper_move_grip(float speed, float current)
 	}
 }
 
-int TrajectorySampler::gripper_stop()
+int MoveIface::gripper_stop()
 {
 	ros::NodeHandle n_stop;
 	ros::ServiceClient c_stop = n_stop.serviceClient<std_srvs::Trigger>("gripper_egl_90/stop");
@@ -371,7 +371,7 @@ int TrajectorySampler::gripper_stop()
 	}
 }
 
-int TrajectorySampler::gripper_move_pos(float pos)
+int MoveIface::gripper_move_pos(float pos)
 {
 	ros::NodeHandle n_move_pos;
 	ros::ServiceClient c_move_pos = n_move_pos.serviceClient<schunk_gripper_egl90::MovePos>("gripper_egl_90/move_pos");
@@ -388,7 +388,7 @@ int TrajectorySampler::gripper_move_pos(float pos)
 	}
 }
 
-int TrajectorySampler::gripper_acknowledge()
+int MoveIface::gripper_acknowledge()
 {
 	ros::NodeHandle n_ack;
 	ros::ServiceClient c_ack = n_ack.serviceClient<std_srvs::Trigger>("gripper_egl_90/acknowledge");
@@ -404,7 +404,7 @@ int TrajectorySampler::gripper_acknowledge()
 	}
 }
 
-void TrajectorySampler::resetToHome(bool info)
+void MoveIface::resetToHome(bool info)
 {
 	if (info)
 		ROS_INFO("Moving to home");
@@ -414,26 +414,26 @@ void TrajectorySampler::resetToHome(bool info)
 	runTrajectory(info);
 }
 
-TrajectorySampler::~TrajectorySampler() {}
+MoveIface::~MoveIface() {}
 
 int main (int argc, char **argv)
 {
 	// Initialize ROS
-	ros::init(argc, argv, "trajectory_sampler");
+	ros::init(argc, argv, "move_iface");
 	ros::NodeHandle nh;
 
 	// ROS spinner
 	ros::AsyncSpinner spinner(0);
 	spinner.start();
 
-	TrajectorySampler plan_sampler(nh);
+	MoveIface plan_sampler(nh);
 
-	ros::ServiceServer service_job = nh.advertiseService("job_env", &TrajectorySampler::run_job, &plan_sampler);
-	ros::ServiceServer service_idle = nh.advertiseService("job_idle", &TrajectorySampler::idle, &plan_sampler);
-	ros::ServiceServer pick_place = nh.advertiseService("pick_place", &TrajectorySampler::pick_place, &plan_sampler);
-	ros::ServiceServer move_lin = nh.advertiseService("move_lin", &TrajectorySampler::move_lin, &plan_sampler);
-	ros::ServiceServer move_joints = nh.advertiseService("move_joints", &TrajectorySampler::move_joints, &plan_sampler);
-	ROS_INFO("Simple Moveit Interface started");
+	ros::ServiceServer service_job = nh.advertiseService("job_env", &MoveIface::run_job, &plan_sampler);
+	ros::ServiceServer service_idle = nh.advertiseService("job_idle", &MoveIface::idle, &plan_sampler);
+	ros::ServiceServer pick_place = nh.advertiseService("pick_place", &MoveIface::pick_place, &plan_sampler);
+	ros::ServiceServer move_lin = nh.advertiseService("move_lin", &MoveIface::move_lin, &plan_sampler);
+	ros::ServiceServer move_joints = nh.advertiseService("move_joints", &MoveIface::move_joints, &plan_sampler);
+	ROS_INFO("RLL Move Interface started");
 
 	ros::waitForShutdown();
 
