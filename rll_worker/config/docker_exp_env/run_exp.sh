@@ -21,34 +21,29 @@
 set -e
 
 GIT_URL=$1 
-ROS_NS=$2
-
-echo -e "\n\t-------------------------"
-echo -e "\t-------------------------"
-echo -e "\t||catkin_init_workspace||"
-echo -e "\t-------------------------"
-echo -e "\t-------------------------\n"
-catkin_init_workspace
+ROS_PKG=$2
+ROS_LAUNCH_FILE=$3
+ROS_NS=$4
 
 echo -e "\n\n\t-------------------------------------------------------------------------------"
 echo -e "\t-------------------------------------------------------------------------------"
 echo -e "\tgit clone $GIT_URL"
 echo -e "\t-------------------------------------------------------------------------------"
 echo -e "\t-------------------------------------------------------------------------------\n"
-git clone --progress --verbose $GIT_URL src/moveit_testing_sender
+git clone --progress --verbose $GIT_URL src/$ROS_PKG
 
-echo -e "\n\n\t----------------"
-echo -e "\t----------------"
-echo -e "\t||catkin build||"
-echo -e "\t----------------"
-echo -e "\t----------------\n"
-catkin build
+echo -e "\n\n\t------------------------------------------------------------------------------"
+echo -e "\t------------------------------------------------------------------------------"
+echo -e "\tcatkin build $ROS_PKG"
+echo -e "\t------------------------------------------------------------------------------"
+echo -e "\t------------------------------------------------------------------------------\n"
+catkin build $ROS_PKG
 
 source devel/setup.bash
 
 echo -e "\n\n\t------------------------------------------------------------------------------"
 echo -e "\t------------------------------------------------------------------------------"
-echo -e "\troslaunch moveit_testing_sender moveit_testing_sender.launch robot:=$ROS_NS"
+echo -e "\troslaunch $ROS_PKG $ROS_LAUNCH_FILE robot:=$ROS_NS"
 echo -e "\t------------------------------------------------------------------------------"
 echo -e "\t------------------------------------------------------------------------------\n"
-roslaunch moveit_testing_sender moveit_testing_sender.launch robot:=$ROS_NS
+roslaunch $ROS_PKG $ROS_LAUNCH_FILE robot:=$ROS_NS
