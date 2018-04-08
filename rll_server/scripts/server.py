@@ -100,8 +100,10 @@ class JobsHandler(tornado.web.RequestHandler):
         username = self.get_argument("username")
         secret = self.get_argument("secret")
         git_url = self.get_argument("git_url")
+        project = self.get_argument("project")
 
-        rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s'", username, git_url)
+        rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s' for project '%s'",
+                      username, git_url, project)
 
         # TODO: better retrieve this from db
         if not secret == self.rll_settings["secret"]:
@@ -129,7 +131,8 @@ class JobsHandler(tornado.web.RequestHandler):
             return
 
         username = self.get_argument("username")
-        job = {"username": username, "git_url": git_url,
+        project = self.get_argument("project")
+        job = {"username": username, "git_url": git_url, "project": project,
                "status": "submitted", "created": datetime.datetime.now()}
         self.jobs_collection.insert_one(job, callback=self._db_job_insert_cb)
 

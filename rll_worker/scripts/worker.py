@@ -63,19 +63,23 @@ def run_job(jobs_collection, dClient, ns):
 
     job_id = job["_id"]
     git_url = job["git_url"]
+    # TODO: for now same as package name
+    project = job["project"]
+    # TODO: read from config file
+    launch_file = "move_sender.launch"
 
-    rospy.loginfo("got job with id '%s', Git URL '%s' and create date %s", job_id, git_url,
-                  str(job["created"]))
+    rospy.loginfo("got job with id '%s' for project '%s', Git URL '%s' and create date %s", job_id,
+                  project, git_url, str(job["created"]))
 
-    command_string =  "./run_exp.sh " + git_url + " " + ns
+    command_string =  "./run_exp.sh " + git_url + " " + project + " " + launch_file + " " + ns
     rospy.loginfo("command string: %s", command_string)
 
     try:
         # TODO: don't grant full access to host network and restrict
         #       resources (CPU, memory, disc space etc.)
         #       may also need to detach in order to be able to kill container if it runs too long
-        job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host",command=command_string,
-                                      stderr=True)
+        job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host", command=command_string,
+                                          stderr=True, tty=True)
     except:
         rospy.logerr("failed to run container")
         # TODO: try to provide more details for this case (logs etc.?)
