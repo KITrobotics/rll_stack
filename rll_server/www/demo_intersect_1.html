@@ -35,17 +35,18 @@
             <input type="hidden" name="op" value="submit">
             <input id="username" type="hidden" name="username" value="intersect_user_1">
             <input id="password" type="hidden" name="secret" value="SET_YOUR_SECRET_HERE">
+            <input type="hidden" name="project" value="">
             <div id="project-list">
               <div id="project-intro">Please choose a project:</div>
               <div id="project-inputs">
                 <label class="project-label">
                   Tower of Hanoi<span id="tower-source">(<a href="https://gitlab.ipr.kit.edu/rll/tower_hanoi/blob/tower_hanoi/scripts/tower_hanoi.py" target="_blank">source code</a>)</span>
-                  <input type="radio" name="git_url" value="https://gitlab.ipr.kit.edu/rll/tower_hanoi.git">
+                  <input id="hanoi_input" type="radio" name="git_url" value="https://gitlab.ipr.kit.edu/rll/tower_of_hanoi.git">
                   <span class="checkmark"></span>
                 </label>
                 <label class="project-label">
                   Greetings<span id="greetings-source">(<a  href="https://gitlab.ipr.kit.edu/rll/greetings/blob/greetings/scripts/greetings.py" target="_blank">source code</a>)</span>
-                  <input type="radio" name="git_url" value="https://gitlab.ipr.kit.edu/rll/greetings.git">
+                  <input id="greetings_input" type="radio" name="git_url" value="https://gitlab.ipr.kit.edu/rll/greetings.git">
                   <span class="checkmark"></span>
                 </label>
                 <label class="project-label">

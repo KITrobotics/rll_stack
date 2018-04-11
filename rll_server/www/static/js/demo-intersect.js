@@ -169,3 +169,10 @@ $(function() {
             log.parentNode.removeChild(log);
     };
 });
+
+$("#hanoi_input").click(function() {
+    $('input[name="project"]').val("tower_of_hanoi");
+});
+$("#greetings_input").click(function() {
+    $('input[name="project"]').val("greetings");
+});
