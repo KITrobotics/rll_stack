@@ -21,7 +21,7 @@
   </material>
 
   <!--  Define the origin of your 3D space
-       Here we define a box lying at 0,0,0 with some dimensions. In reality, our robot is placed on top of a steel table.
+       Here we define a box lying at 0,0,0 with some dimensions. In reality, our robot is placed on top of a table.
        This will include the table top in the scene and avoid the robot to hit it when using MoveIt!
   -->
 
@@ -45,8 +45,7 @@
     </collision>
   </link>
 
-  <!-- virtual walls
-       Every wall is a link which does not collide with a different wall or the collision link of the steel plate -->
+  <!-- virtual walls -->
 
   <joint name="wall_joint1" type="fixed">
     <parent link="world" />
@@ -73,14 +72,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.01 1.599 1.1" rpy="0 0 0"/>
+        <box size="0.01 0.8 0.55" rpy="0 0 0"/>
       </geometry>
       <material name="transparent" />
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.01 1.599 1.1" rpy="0 0 0"/>
+        <box size="0.01 1.6 1.1" rpy="0 0 0"/>
       </geometry>
       <material name="transparent" />
     </collision>
@@ -89,14 +88,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.01 1.599 1.1" rpy="0 0 0"/>
+        <box size="0.01 0.8 0.55" rpy="0 0 0"/>
       </geometry>
       <material name="transparent" />
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.01 1.599 1.1" rpy="0 0 0"/>
+        <box size="0.01 1.6 1.1" rpy="0 0 0"/>
       </geometry>
       <material name="transparent" />
     </collision>
@@ -105,14 +104,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="1.199 0.01 1.1" rpy="0 0 0"/>
+        <box size="0.6 0.01 0.55" rpy="0 0 0"/>
       </geometry>
       <material name="transparent" />
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="1.199 0.01 1.1" rpy="0 0 0"/>
+        <box size="1.2 0.01 1.1" rpy="0 0 0"/>
       </geometry>
       <material name="transparent" />
     </collision>
@@ -121,14 +120,14 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="1.199 0.01 1.1" rpy="0 0 0"/>
+        <box size="0.6 0.01 0.55" rpy="0 0 0"/>
       </geometry>
       <material name="transparent" />
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="1.199 0.01 1.1" rpy="0 0 0"/>
+        <box size="1.2 0.01 1.1" rpy="0 0 0"/>
       </geometry>
       <material name="transparent" />
     </collision>
