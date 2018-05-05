@@ -199,7 +199,7 @@ if __name__ == '__main__':
 
     # settings
     rospack = rospkg.RosPack()
-    config_path = rospack.get_path('rll_description') + "/config/rll.yaml"
+    config_path = rospack.get_path('rll_config') + "/config/rll.yaml"
     with open(config_path, 'r') as doc:
         rll_settings = yaml.load(doc)
         db_name = rll_settings["db_name"]
