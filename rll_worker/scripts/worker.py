@@ -26,6 +26,7 @@ import docker
 import pymongo
 import datetime
 import time
+import traceback
 
 from rll_worker.srv import *
 from rll_worker.msg import *
@@ -75,13 +76,16 @@ def run_job(jobs_collection, dClient, ns):
     rospy.loginfo("command string: %s", command_string)
 
     try:
-        # TODO: don't grant full access to host network and restrict
-        #       resources (CPU, memory, disc space etc.)
+        # TODO: don't grant full access to host network)
         #       may also need to detach in order to be able to kill container if it runs too long
         job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host", command=command_string,
-                                          stderr=True, tty=True)
+                                          stderr=True, tty=True,
+                                          nano_cpus=int(1e9), # limit to one CPU
+                                          mem_limit="1g", # limit RAM to 1GB
+                                          memswap_limit="1g", # limit RAM+SWAP to 1GB
+                                          storage_opt={"size": "10G"}) # limit disk space to 10GB
     except:
-        rospy.logerr("failed to run container")
+        rospy.logerr("failed to run container:\n%s", traceback.format_exc())
         # TODO: try to provide more details for this case (logs etc.?)
         jobs_collection.find_one_and_update({"_id": job_id},
                                             {"$set": {"status": "finished",
