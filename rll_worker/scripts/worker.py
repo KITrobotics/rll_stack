@@ -21,25 +21,26 @@
 import rospy
 import rospkg
 import yaml
+from rll_worker.srv import *
+from rll_worker.msg import *
 
 import docker
 import pymongo
+from git import Repo
 import datetime
 import time
 import traceback
-
-from rll_worker.srv import *
-from rll_worker.msg import *
+from os import path, makedirs, remove
+from shutil import rmtree
 
 # the iiwas activate their brakes around 45 minutes of inactivity
 # work around this by sending idle at least every iiwa_timeout
 iiwa_timeout = 0.3 * 3600
 idle_start = time.time()
 
-def run_job(jobs_collection, dClient, ns):
+def run_jobs(jobs_collection, dClient, ns):
     # rospy.loginfo("searching for new job in namespace '%s'", ns)
     global idle_start
-    job_idle = rospy.ServiceProxy("job_idle", JobEnv)
 
     # TODO: use indexing
     job = jobs_collection.find_one_and_update({"status": "submitted"},
@@ -49,48 +50,21 @@ def run_job(jobs_collection, dClient, ns):
                                               sort=[("created", pymongo.ASCENDING)])
 
     if job == None:
-        # rospy.loginfo("no job in queue")
-
-        if (time.time() - idle_start) > iiwa_timeout:
-            rospy.wait_for_service("job_idle")
-            try:
-                resp = job_idle(True)
-            except rospy.ServiceException, e:
-                rospy.loginfo("service call failed: %s", e)
-            idle_start = time.time()
-        else:
-            rospy.sleep(0.1)
+        job_idling()
         return
 
     job_id = job["_id"]
     git_url = job["git_url"]
+    git_tag = job["git_tag"]
     # TODO: for now same as package name
     project = job["project"]
-    # TODO: read from config file
-    launch_file = "move_sender.launch"
+    username = job["username"]
 
-    rospy.loginfo("got job with id '%s' for project '%s', Git URL '%s' and create date %s", job_id,
-                  project, git_url, str(job["created"]))
+    rospy.loginfo("got job with id '%s' for project '%s', Git URL '%s', Git Tag '%s' and create date %s", job_id,
+                  project, git_url, git_tag, str(job["created"]))
 
-    command_string =  "./run_exp.sh " + git_url + " " + project + " " + launch_file + " " + ns
-    rospy.loginfo("command string: %s", command_string)
-
-    try:
-        # TODO: don't grant full access to host network)
-        #       may also need to detach in order to be able to kill container if it runs too long
-        job_logs = dClient.containers.run("rll_exp_env:v1", network_mode="host", command=command_string,
-                                          stderr=True, tty=True,
-                                          nano_cpus=int(1e9), # limit to one CPU
-                                          mem_limit="1g", # limit RAM to 1GB
-                                          memswap_limit="1g", # limit RAM+SWAP to 1GB
-                                          storage_opt={"size": "10G"}) # limit disk space to 10GB
-    except:
-        rospy.logerr("failed to run container:\n%s", traceback.format_exc())
-        # TODO: try to provide more details for this case (logs etc.?)
-        jobs_collection.find_one_and_update({"_id": job_id},
-                                            {"$set": {"status": "finished",
-                                                      "job_end": datetime.datetime.now(),
-                                                      "job_result": "failed"}})
+    success = start_job(git_url, git_tag, username, job_id, project)
+    if not success:
         return
 
     rospy.wait_for_service("job_env")
@@ -101,24 +75,19 @@ def run_job(jobs_collection, dClient, ns):
     except rospy.ServiceException, e:
         rospy.loginfo("service call failed: %s", e)
         # reset the job and run it later again
-        # TODO: be more transparent about this by using a different status code or by improving
-        #       the job run script
+        # TODO: be more transparent about this by using a different status code
         jobs_collection.find_one_and_update({"_id": job_id},
-                                            {"$set": {"status": "submitted"}})
+                                            {"$set": {"status": "submitted",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "job env not available"}})
         return
-
-    rospy.loginfo("\n\ncontainer logs:\n\n%s", job_logs)
-    log_file = rll_settings["logs_save_dir"] + "/" + str(job_id) + ".log"
-    log_ptr = open(log_file, "w")
-    log_ptr.write(job_logs)
-    log_ptr.close()
-    rospy.loginfo("wrote logs to disk")
 
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": "finished",
                                                   "job_end": datetime.datetime.now(),
                                                   "job_result": job_result_codes_to_string(resp.job.status)}})
 
+    # reset robot and environment
     try:
         resp = job_idle(True)
     except rospy.ServiceException, e:
@@ -129,10 +98,127 @@ def run_job(jobs_collection, dClient, ns):
     # reset time counter
     idle_start = time.time()
 
+
+def job_idling():
+    global idle_start
+
+    # rospy.loginfo("no job in queue")
+
+    if (time.time() - idle_start) > iiwa_timeout:
+        rospy.wait_for_service("job_idle")
+        try:
+            resp = job_idle(True)
+        except rospy.ServiceException, e:
+            rospy.loginfo("service call failed: %s", e)
+            idle_start = time.time()
+    else:
+        rospy.sleep(0.1)
+
+
+def start_job(git_url, git_tag, username, job_id, project):
+    try:
+        # TODO: don't grant full access to host network
+        container = dClient.containers.create("rll_exp_env:v1", network_mode="host",
+                                              detach=True, tty=True,
+                                              nano_cpus=int(1e9), # limit to one CPU
+                                              mem_limit="1g", # limit RAM to 1GB
+                                              memswap_limit="1g", # limit RAM+SWAP to 1GB
+                                              storage_opt={"size": "10G"}) # limit disk space to 10GB
+    except:
+        rospy.logerr("failed to create container:\n%s", traceback.format_exc())
+        # reset job for rerun
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "submitted",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "creating container failed"}})
+        return False
+
+    # TODO: handle clone failures
+    success = get_exp_code(git_url, git_tag, username, job_id, project, container)
+    if not success:
+        return False
+
+    cmd_result = container.exec_run("catkin build", stdin=True)
+    write_logs(job_id, cmd_result[1], "build")
+    if cmd_result[0] != 0:
+        rospy.logerr("building project failed")
+
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "finished",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "building project failed"}})
+        finish_container(container)
+        return False;
+
+    # TODO: read from config file
+    launch_file = "move_sender.launch"
+    launch_cmd = "roslaunch " + project + " " + launch_file + " robot:=" + ns
+    cmd_result = container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"" , stdin=True) # , detach=True
+    write_logs(job_id, cmd_result[1], "launch")
+    if cmd_result[0] != 0:
+        rospy.logerr("launching project failed")
+
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "finished",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "launching project failed"}})
+        finish_container(container)
+        return False;
+
+    return True
+
+
+def get_exp_code(git_url, git_tag, username, job_id, project, container):
+    repo_clone_dir = rll_settings["git_archive_dir"] + "/" + username + "/" + project
+    repo_archive_file = repo_clone_dir + ".tar"
+    ws_repo_path = "/home/rll_user/ws/src/" + project
+
+    repo = Repo.clone_from(git_url, repo_clone_dir, branch=git_tag) # TODO: --single-branch for not cloning all branches
+    if repo.__class__ is not Repo:
+        rospy.logerr("cloning project repo failed")
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "finished",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "fetching project code failed"}})
+        return False
+
+    with open(repo_archive_file, 'wb') as fwp:
+        repo.archive(fwp)
+
+    with open(repo_archive_file, 'rb') as frp:
+        container.start()
+        container.exec_run("mkdir " + ws_repo_path)
+        container.put_archive(ws_repo_path, frp)
+        rospy.loginfo("uploaded project to container")
+
+    remove(repo_archive_file)
+    # TODO: create a proper archive and don't delete the repo
+    rmtree(repo_clone_dir, ignore_errors=True)
+
+    return True
+
+
+def finish_container(container):
+    container.stop()
+    container.remove()
+
+def write_logs(job_id, log_str, log_type):
+    rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
+    log_folder = rll_settings["logs_save_dir"] + "/" + str(job_id)
+    if not path.exists(log_folder):
+        makedirs(log_folder)
+    log_file = log_folder + "/" + log_type  + ".log"
+    log_ptr = open(log_file, "w")
+    log_ptr.write(log_str)
+    log_ptr.close()
+    rospy.loginfo("wrote %s logs to disk", log_type)
+
+
 def job_result_codes_to_string(status):
     job_codes = {JobStatus.SUCCESS: "success", JobStatus.FAILURE: "failure",
                  JobStatus.INTERNAL_ERROR: "internal error"}
     return job_codes.get(status, "unknown")
+
 
 if __name__ == '__main__':
     rospy.init_node('job_worker')
@@ -151,6 +237,7 @@ if __name__ == '__main__':
     jobs_collection = db_client[db_name].jobs
 
     dClient = docker.from_env()
+    job_idle = rospy.ServiceProxy("job_idle", JobEnv)
 
     while not rospy.is_shutdown():
-        run_job(jobs_collection, dClient, ns)
+        run_jobs(jobs_collection, dClient, ns)

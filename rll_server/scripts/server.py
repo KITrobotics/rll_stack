@@ -99,11 +99,13 @@ class JobsHandler(tornado.web.RequestHandler):
     def _handle_submit(self):
         username = self.get_argument("username")
         secret = self.get_argument("secret")
-        git_url = self.get_argument("git_url")
         project = self.get_argument("project")
+        git_url = self.get_argument("git_url")
+        git_tag = self.get_argument("git_tag")
 
-        rospy.loginfo("got a new submission with username '%s' and Git repo URL '%s' for project '%s'",
-                      username, git_url, project)
+        # TODO: check if valid project
+        rospy.loginfo("got a new submission with username '%s', Git repo URL '%s' and tag '%s' for project '%s'",
+                      username, git_url, git_tag, project)
 
         # TODO: better retrieve this from db
         if not secret == self.rll_settings["secret"]:
@@ -127,24 +129,32 @@ class JobsHandler(tornado.web.RequestHandler):
             return
 
         git_url = self.get_argument("git_url")
-        if not self._valid_git_url(git_url):
+        git_tag = self.get_argument("git_tag")
+        if not self._valid_git_url(git_url, git_tag):
             return
 
         username = self.get_argument("username")
         project = self.get_argument("project")
-        job = {"username": username, "git_url": git_url, "project": project,
+        job = {"username": username, "project": project, "git_url": git_url, "git_tag": git_tag,
                "status": "submitted", "created": datetime.datetime.now()}
         self.jobs_collection.insert_one(job, callback=self._db_job_insert_cb)
 
-    def _valid_git_url(self, git_url):
+    def _valid_git_url(self, git_url, git_tag):
         g = git.cmd.Git()
         try:
-            g.ls_remote(git_url)
+            tag = g.ls_remote(git_url, "refs/tags/" + git_tag)
         except:
             response = {"status": "error", "error": "Git URL invalid"}
             self.write(json_encode(response))
             self.finish()
             return False
+
+        if tag == "":
+            response = {"status": "error", "error": "Git tag not found"}
+            self.write(json_encode(response))
+            self.finish()
+            return False
+
         return True
 
     def _db_job_status_cb(self, job, error):
