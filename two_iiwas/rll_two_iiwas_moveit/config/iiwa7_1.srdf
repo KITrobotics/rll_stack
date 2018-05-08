@@ -68,6 +68,7 @@
     <disable_collisions link1="iiwa_1_link_5" link2="iiwa_1_link_6" reason="Adjacent" />
     <disable_collisions link1="iiwa_1_link_5" link2="iiwa_1_link_7" reason="Never" />
     <disable_collisions link1="iiwa_1_link_6" link2="iiwa_1_link_7" reason="Adjacent" />
+    <disable_collisions link1="iiwa_1_link_7" link2="iiwa_1_gripper_adapter" reason="Adjacent" />
     <disable_collisions link1="wall_back" link2="wall_front" reason="Never" />
     <disable_collisions link1="wall_back" link2="wall_left" reason="Never" />
     <disable_collisions link1="wall_back" link2="wall_right" reason="Never" />
