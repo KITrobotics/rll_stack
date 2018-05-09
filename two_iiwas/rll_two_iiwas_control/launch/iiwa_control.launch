@@ -23,7 +23,7 @@
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher"
           respawn="false" output="screen">
         <remap from="joint_states" to="/$(arg robot_name)/joint_states" />
-        <param name="publish_frequency" value="$(arg robot_state_frequency)" />
+        <param name="ignore_timestamp" type="bool" value="true"/>
     </node>
     
 </launch>
