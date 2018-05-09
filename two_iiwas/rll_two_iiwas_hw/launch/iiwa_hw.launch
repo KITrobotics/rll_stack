@@ -4,13 +4,15 @@
     <!-- LAUNCH INTERFACE -->
     <arg name="hardware_interface" default="PositionJointInterface"/>
     <arg name="robot_name" default="iiwa"/>
+    <arg name="fri_port" default="30200"/>
     
     <!-- LAUNCH IMPLEMENTATION -->
     <rosparam command="load" file="$(find rll_two_iiwas_hw)/config/joint_names_$(arg robot_name).yaml" />
     <!-- addresses /-->
     <param name="interface" value="$(arg hardware_interface)"/>
     
+    <param name="fri_port" type="int" value="$(arg fri_port)"/>
     <!-- the real hardware interface /-->
-    <node name="iiwa_hw" pkg="iiwa_hw" type="iiwa_hw-bin" respawn="false" output="screen"/>
+    <node name="iiwa_hw" pkg="iiwa_fri_hw_interface" type="iiwa_fri_hardware_interface_node" respawn="false" output="screen"/>
     
 </launch>
