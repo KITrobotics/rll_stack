@@ -14,7 +14,7 @@ USER rll_user
 
 RUN HOME=/home/rll_user rosdep update
 
-#env ROS_MASTER_URI=http://${ros_master_ip}:11311
+env ROS_MASTER_URI=http://${ros_master_ip}:11311
 #env ROS_HOSTNAME=exp_container
 #env ROS_IP=${ros_master_ip}
 
