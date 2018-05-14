@@ -5,8 +5,8 @@
   
   <arg name="hardware_interface" default="PositionJointInterface"/>
   <arg name="robot_name" default="iiwa"/>
-  <arg name="model" default="iiwa14"/>
-  <arg name="model_semantic" default="iiwa14"/>
+  <arg name="model" default="iiwa7"/>
+  <arg name="model_semantic" default="iiwa7"/>
 
   <!-- The name of the parameter under which the URDF is loaded -->
   <arg name="robot_description" default="robot_description"/>
@@ -24,7 +24,7 @@
 
   <!-- Load default settings for kinematics; these settings are overridden by settings in a node's namespace -->
   <group ns="$(arg robot_description)_kinematics">
-    <rosparam command="load" file="$(find iiwa_moveit)/config/kinematics.yaml"/>
+    <rosparam command="load" file="$(find rll_moveit_config)/config/kinematics.yaml"/>
   </group>
   
 </launch>
