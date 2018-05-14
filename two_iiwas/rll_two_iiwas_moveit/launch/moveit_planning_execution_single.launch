@@ -13,6 +13,7 @@
     <!-- Model of the iiwa to use : iiwa7, iiwa14 -->
     <arg name="model" default="iiwa7"/>
     <arg name="rviz" default="true" />
+    <arg name="can_iface" default="can0" />
 
     <group ns="$(arg robot_name)">
         <remap from="/$(arg hardware_interface)_trajectory_controller/follow_joint_trajectory"
@@ -48,6 +49,11 @@
         <include if="$(arg rviz)" file="$(find rll_two_iiwas_moveit)/launch/moveit_rviz.launch">
             <arg name="config" value="true"/>
         </include>
+
+        <!-- gripper setup -->
+        <node name="gripper_egl_90" pkg="schunk_gripper_egl90" type="schunk_gripper_egl90_node" output="screen">
+            <param name="can_iface" value="$(arg can_iface)"/>
+        </node>
 
     </group>
 
