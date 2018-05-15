@@ -38,7 +38,7 @@ from shutil import rmtree
 iiwa_timeout = 0.3 * 3600
 idle_start = time.time()
 
-def run_jobs(jobs_collection, dClient, ns):
+def job_loop(jobs_collection, dClient, ns):
     # rospy.loginfo("searching for new job in namespace '%s'", ns)
     global idle_start
 
@@ -63,9 +63,12 @@ def run_jobs(jobs_collection, dClient, ns):
     rospy.loginfo("got job with id '%s' for project '%s', Git URL '%s', Git Tag '%s' and create date %s", job_id,
                   project, git_url, git_tag, str(job["created"]))
 
-    success = start_job(git_url, git_tag, username, job_id, project)
+    success = run_job(git_url, git_tag, username, job_id, project)
     if not success:
+        rospy.loginfo("running job failed, returning")
         return
+    else:
+        rospy.loginfo("running job succeeded")
 
     rospy.wait_for_service("job_env")
     try:
@@ -115,10 +118,10 @@ def job_idling():
         rospy.sleep(0.1)
 
 
-def start_job(git_url, git_tag, username, job_id, project):
+def run_job(git_url, git_tag, username, job_id, project):
     try:
         # TODO: don't grant full access to host network
-        container = dClient.containers.create("rll_exp_env:v1", network_mode="host",
+        container = dClient.containers.create("rll_exp_env:v2", network_mode="host",
                                               detach=True, tty=True,
                                               nano_cpus=int(1e9), # limit to one CPU
                                               mem_limit="1g", # limit RAM to 1GB
@@ -153,7 +156,8 @@ def start_job(git_url, git_tag, username, job_id, project):
     # TODO: read from config file
     launch_file = "move_sender.launch"
     launch_cmd = "roslaunch " + project + " " + launch_file + " robot:=" + ns
-    cmd_result = container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"" , stdin=True) # , detach=True
+    # TODO: we need to detach here (detach=True)
+    cmd_result = container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"" , stdin=True)
     write_logs(job_id, cmd_result[1], "launch")
     if cmd_result[0] != 0:
         rospy.logerr("launching project failed")
@@ -165,6 +169,7 @@ def start_job(git_url, git_tag, username, job_id, project):
         finish_container(container)
         return False;
 
+    finish_container(container)
     return True
 
 
@@ -240,4 +245,4 @@ if __name__ == '__main__':
     job_idle = rospy.ServiceProxy("job_idle", JobEnv)
 
     while not rospy.is_shutdown():
-        run_jobs(jobs_collection, dClient, ns)
+        job_loop(jobs_collection, dClient, ns)

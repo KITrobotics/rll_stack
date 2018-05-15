@@ -2,6 +2,7 @@ db_name: rll_test
 
 logs_base_url: http://localhost/logs
 cams_base_url: http://localhost
+git_archive_dir: /home/rll/projects/test
 logs_save_dir: /home/rll/logs/test
 
 secret: SET_YOUR_SECRET_HERE
