@@ -6,8 +6,14 @@
 
     `mkdir -p rll_ws/src && cd rll_ws`   
     `catkin_init_workspace`   
-    `git clone https://gitlab.ipr.kit.edu/rll/rll_stack.git src/rll_stack`   
-    `git clone https://gitlab.ipr.kit.edu/rll/iiwa_stack.git src/iiwa_stack`
+    `cd src`   
+    `git clone https://gitlab.ipr.kit.edu/rll/rll_stack.git`   
+    `git clone https://gitlab.ipr.kit.edu/rll/iiwa_stack.git`   
+    `git clone https://gitlab.ipr.kit.edu/rll/schunk_gripper_egl90.git`   
+    `git clone https://gitlab.ipr.kit.edu/rll/moveit_wrapper.git`   
+    `git clone https://gitlab.ipr.kit.edu/rll/moveit.git`   
+    `git clone https://gitlab.ipr.kit.edu/rll/iiwa_fri_hw_interface.git`   
+    `cd ..`
 
 2. Install dependencies:
 
