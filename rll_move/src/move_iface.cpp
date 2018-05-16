@@ -19,8 +19,8 @@
 
 #include <move_iface.h>
 
-double cartesian_velocity = 0.25; //in m/s
-double cartesian_acceleration = 0.5; //in m/s²
+double cartesian_velocity = 0.4; //in m/s
+double cartesian_acceleration = 1; //in m/s²
 
 MoveIface::MoveIface(ros::NodeHandle nh)
 	: move_group(PLANNING_GROUP), moveit_wrapper(PLANNING_GROUP)
@@ -156,7 +156,16 @@ bool MoveIface::pick_place(rll_msgs::PickPlace::Request &req,
 	ROS_INFO("Moving above grip position");
 	move_group.setStartStateToCurrentState();
 	waypoints_away.push_back(req.pose_above);
-	move_group.computeCartesianPath(waypoints_away, eef_step, jump_threshold, trajectory);
+	achieved = move_group.computeCartesianPath(waypoints_away, eef_step, jump_threshold, trajectory);
+	if (achieved < 1 && achieved > 0) {
+		ROS_ERROR("only achieved to compute %f of the requested path", achieved);
+		resp.success = false;
+		return true;
+	} else if (achieved <= 0) {
+		ROS_ERROR("path planning completely failed");
+		resp.success = false;
+		return true;
+	}
 
 	error = moveit_wrapper.parametrize_cartesian_time(trajectory, cartesian_velocity, cartesian_acceleration);
 	if (!error) {
@@ -168,7 +177,7 @@ bool MoveIface::pick_place(rll_msgs::PickPlace::Request &req,
 	my_plan.trajectory_= trajectory;
 
 	// ROS_INFO("trajectory points:");
-	// for(std::size_t i = 0; i < trajectory.joint_trajectory.points.size(); ++i) {
+	// for (std::size_t i = 0; i < trajectory.joint_trajectory.points.size(); ++i) {
 	// 	ROS_INFO_STREAM("point " << trajectory.joint_trajectory.points[i].positions[1] << "  velocity " << trajectory.joint_trajectory.points[i].velocities[1] << "  accelerations " << trajectory.joint_trajectory.points[i].accelerations[1] << "  time from start " << trajectory.joint_trajectory.points[i].time_from_start);
 	// }
 
