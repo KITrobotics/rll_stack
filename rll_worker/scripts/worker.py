@@ -156,7 +156,7 @@ def run_job(git_url, git_tag, username, job_id, project):
 
     # TODO: read from config file
     launch_file = "move_sender.launch"
-    launch_cmd = "roslaunch " + project + " " + launch_file + " robot:=" + ns
+    launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
     # TODO: we need to detach here (detach=True)
     cmd_result = container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"" , stdin=True)
     write_logs(job_id, cmd_result[1], "launch")
@@ -212,6 +212,7 @@ def write_logs(job_id, log_str, log_type):
     rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
 
     # https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
+    # TODO: as an alternative, save without ANSI codes removal and use ansi2html for formatting in browser
     ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
     log_str = ansi_escape.sub('', log_str)
 
