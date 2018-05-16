@@ -36,8 +36,6 @@
             <arg name="robot_name" value="$(arg robot_name)" />
         </include>
 
-        <param name="toolName" type="string" value="gripper" />
-
         <include file="$(find rll_two_iiwas_moveit)/launch/move_group.launch">
             <arg name="publish_monitored_planning_scene" value="true" />
             <arg name="hardware_interface" value="$(arg hardware_interface)"/>
