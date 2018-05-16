@@ -35,7 +35,6 @@
     <depend>rll_worker</depend>
     <depend>rll_msgs</depend>
     <depend>schunk_gripper_egl90</depend>
-    <depend>iiwa_ros</depend>
     <depend>moveit_wrapper</depend>
   <!--   Note that this is equivalent to the following: -->
   <!--   <build_depend>roscpp</build_depend> -->

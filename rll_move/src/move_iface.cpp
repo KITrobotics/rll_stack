@@ -44,15 +44,7 @@ MoveIface::MoveIface(ros::NodeHandle nh)
 	move_group.setEndEffectorLink(ee_link);
 	moveit_wrapper.setTCP(ee_link);
 
-	my_iiwa.init();
-
-	// do initial home reset already here, because if TCP is in a too upright
-	// position, setting the path parameters fails
 	resetToHome();
-
-	my_iiwa.getPathParametersService().setJointRelativeVelocity(1.0);
-	my_iiwa.getPathParametersService().setJointRelativeAcceleration(1.0);
-	my_iiwa.getPathParametersService().setOverrideJointAcceleration(3.5);
 
 	// necessary for position commands
 	// gripper_reference_motion();
@@ -73,14 +65,9 @@ bool MoveIface::idle(rll_worker::JobEnv::Request &req,
 	// Send home position when idling
 	// This ensures that the brakes are not activated and the control cycle keeps running.
 	// If we don't do this, the robot won't move when a trajectory is sent and the brakes are active.
-	if (my_iiwa.getRobotIsConnected()) {
-		resetToHome(false);
-		open_gripper();
-		resp.job.status = rll_worker::JobStatus::SUCCESS;
-	} else {
-		ROS_WARN_STREAM("Robot is not connected...");
-		resp.job.status = rll_worker::JobStatus::INTERNAL_ERROR;
-	}
+	resetToHome(false);
+	open_gripper();
+	resp.job.status = rll_worker::JobStatus::SUCCESS;
 
 	return true;
 }
@@ -179,6 +166,11 @@ bool MoveIface::pick_place(rll_msgs::PickPlace::Request &req,
 	}
 
 	my_plan.trajectory_= trajectory;
+
+	// ROS_INFO("trajectory points:");
+	// for(std::size_t i = 0; i < trajectory.joint_trajectory.points.size(); ++i) {
+	// 	ROS_INFO_STREAM("point " << trajectory.joint_trajectory.points[i].positions[1] << "  velocity " << trajectory.joint_trajectory.points[i].velocities[1] << "  accelerations " << trajectory.joint_trajectory.points[i].accelerations[1] << "  time from start " << trajectory.joint_trajectory.points[i].time_from_start);
+	// }
 
 	success = (move_group.execute(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
 	if (!success) {

@@ -22,7 +22,6 @@
 
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
-#include <iiwa_ros/iiwa_ros.h>
 
 #include <rll_worker/JobEnv.h>
 #include <rll_msgs/PickPlace.h>
@@ -58,7 +57,6 @@ private:
 	moveit::planning_interface::MoveGroupInterface move_group;
 	geometry_msgs::Pose target_1, target_2;
 
-	iiwa_ros::iiwaRos my_iiwa;
   MoveItWrapper moveit_wrapper;
 
 	bool runTrajectory(bool info = true);

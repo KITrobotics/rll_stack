@@ -8,7 +8,6 @@ add_compile_options(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  iiwa_ros
   moveit_core
   moveit_ros_planning
   moveit_ros_planning_interface
@@ -112,7 +111,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES rll_moveit_testing
-   CATKIN_DEPENDS iiwa_ros rll_worker schunk_gripper_egl90 message_runtime rll_msgs
+   CATKIN_DEPENDS schunk_gripper_egl90 message_runtime rll_msgs
 #  DEPENDS system_lib
 )
 
@@ -124,12 +123,7 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-add_executable(trajectory_sampler src/trajectory_sampler.cpp)
-add_dependencies(trajectory_sampler iiwa_msgs_generate_messages_cpp)
-target_link_libraries(trajectory_sampler ${catkin_LIBRARIES})
-
 add_executable(move_iface src/move_iface.cpp)
-add_dependencies(move_iface iiwa_msgs_generate_messages_cpp)
 target_link_libraries(move_iface ${catkin_LIBRARIES})
 
 ## Rename C++ executable without prefix
