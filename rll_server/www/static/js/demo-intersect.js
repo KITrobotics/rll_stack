@@ -172,7 +172,9 @@ $(function() {
 
 $("#hanoi_input").click(function() {
     $('input[name="project"]').val("tower_of_hanoi");
+    $('input[name="git_tag"]').val("v0.2");
 });
 $("#greetings_input").click(function() {
     $('input[name="project"]').val("greetings");
+    $('input[name="git_tag"]').val("v0.1");
 });
