@@ -30,6 +30,7 @@ from git import Repo
 import datetime
 import time
 import traceback
+import re
 from os import path, makedirs, remove
 from shutil import rmtree
 
@@ -113,7 +114,7 @@ def job_idling():
             resp = job_idle(True)
         except rospy.ServiceException, e:
             rospy.loginfo("service call failed: %s", e)
-            idle_start = time.time()
+        idle_start = time.time()
     else:
         rospy.sleep(0.1)
 
@@ -141,7 +142,7 @@ def run_job(git_url, git_tag, username, job_id, project):
     if not success:
         return False
 
-    cmd_result = container.exec_run("catkin build", stdin=True)
+    cmd_result = container.exec_run("catkin build --no-status", stdin=True, tty=True)
     write_logs(job_id, cmd_result[1], "build")
     if cmd_result[0] != 0:
         rospy.logerr("building project failed")
@@ -209,6 +210,11 @@ def finish_container(container):
 
 def write_logs(job_id, log_str, log_type):
     rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
+
+    # https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
+    ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+    log_str = ansi_escape.sub('', log_str)
+
     log_folder = rll_settings["logs_save_dir"] + "/" + str(job_id)
     if not path.exists(log_folder):
         makedirs(log_folder)
