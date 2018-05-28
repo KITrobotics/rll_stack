@@ -5,8 +5,6 @@
   
   <arg name="hardware_interface" default="PositionJointInterface"/>
   <arg name="robot_name" default="iiwa"/>
-  <arg name="model" default="iiwa7"/>
-  <arg name="model_semantic" default="iiwa7"/>
 
   <!-- The name of the parameter under which the URDF is loaded -->
   <arg name="robot_description" default="robot_description"/>
@@ -20,7 +18,7 @@
   </group>
 
   <!-- The semantic description that corresponds to the URDF -->
-  <param name="$(arg robot_description)_semantic" textfile="$(find rll_two_iiwas_moveit)/config/$(arg model_semantic).srdf" />
+  <param name="$(arg robot_description)_semantic" textfile="$(find rll_two_iiwas_moveit)/config/$(arg robot_name).srdf" />
 
   <!-- Load default settings for kinematics; these settings are overridden by settings in a node's namespace -->
   <group ns="$(arg robot_description)_kinematics">

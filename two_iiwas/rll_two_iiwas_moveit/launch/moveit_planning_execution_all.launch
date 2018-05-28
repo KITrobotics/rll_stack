@@ -9,33 +9,22 @@
     <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
     <arg name="robot_name_1" default="iiwa_1"/>
     <arg name="robot_name_2" default="iiwa_2"/>
-    <arg name="model_semantic_1" default="iiwa7_1" />
-    <arg name="model_semantic_2" default="iiwa7_2" />
-    <!-- Model of the iiwa to use : iiwa7, iiwa14 -->
-    <arg name="model" default="iiwa7"/>
     <arg name="rviz" default="true" />
 
-    
+
     <!-- Load robot 1 -->
     <include file="$(find rll_two_iiwas_moveit)/launch/moveit_planning_execution_single.launch">
         <arg name="hardware_interface" value="PositionJointInterface"/>
-        <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
         <arg name="robot_name" value="iiwa_1"/>
-        <arg name="model_semantic" value="iiwa7_1" />
-        <!-- Model of the iiwa to use : iiwa7, iiwa14 -->
-        <arg name="model" value="iiwa7"/>
         <arg name="rviz" value="true" />
         <arg name="fri_port" value="30200" />
     </include>
-    
+
     <!-- Load robot 2 -->
     <include file="$(find rll_two_iiwas_moveit)/launch/moveit_planning_execution_single.launch">
         <arg name="hardware_interface" value="PositionJointInterface"/>
         <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
         <arg name="robot_name" value="iiwa_2"/>
-        <arg name="model_semantic" value="iiwa7_2" />
-        <!-- Model of the iiwa to use : iiwa7, iiwa14 -->
-        <arg name="model" value="iiwa7"/>
         <arg name="rviz" value="true" />
         <arg name="fri_port" value="30201" />
     </include>

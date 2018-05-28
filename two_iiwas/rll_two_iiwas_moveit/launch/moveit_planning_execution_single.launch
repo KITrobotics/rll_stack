@@ -8,10 +8,7 @@
     <arg name="hardware_interface" default="PositionJointInterface"/>
     <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
     <arg name="robot_name" default="iiwa_1"/>
-    <arg name="model_semantic" default="iiwa7_1" />
     <arg name="fri_port" default="30200" />
-    <!-- Model of the iiwa to use : iiwa7, iiwa14 -->
-    <arg name="model" default="iiwa7"/>
     <arg name="rviz" default="true" />
     <arg name="can_iface" default="can0" />
 
@@ -22,15 +19,14 @@
         <remap from="/get_planning_scene" to="/$(arg robot_name)/get_planning_scene" />
 
         <!-- Load controllers accordingly to parameters -->
-        <include file="$(find rll_two_iiwas_control)/launch/iiwa_control.launch">
+        <include file="$(find rll_two_iiwas_control)/launch/rll_control.launch">
             <arg name="hardware_interface" value="$(arg hardware_interface)" />
             <arg name="controllers" value="joint_state_controller $(arg hardware_interface)_trajectory_controller" />
             <arg name="robot_name" value="$(arg robot_name)" />
-            <arg name="model" value="$(arg model)" />
         </include>
 
         <!-- Robot interface -->
-        <include file="$(find rll_two_iiwas_hw)/launch/iiwa_hw.launch" >
+        <include file="$(find rll_two_iiwas_hw)/launch/rll_hw.launch" >
             <arg name="fri_port" value="$(arg fri_port)" />
             <arg name="hardware_interface" value="$(arg hardware_interface)" />
             <arg name="robot_name" value="$(arg robot_name)" />
@@ -40,8 +36,6 @@
             <arg name="publish_monitored_planning_scene" value="true" />
             <arg name="hardware_interface" value="$(arg hardware_interface)"/>
             <arg name="robot_name" value="$(arg robot_name)"/>
-            <arg name="model" value="$(arg model)" />
-            <arg name="model_semantic" value="$(arg model_semantic)" />
         </include>
 
         <include if="$(arg rviz)" file="$(find rll_two_iiwas_moveit)/launch/moveit_rviz.launch">
