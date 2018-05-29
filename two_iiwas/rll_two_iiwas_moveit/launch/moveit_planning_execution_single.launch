@@ -38,7 +38,7 @@
             <arg name="robot_name" value="$(arg robot_name)"/>
         </include>
 
-        <include if="$(arg rviz)" file="$(find rll_two_iiwas_moveit)/launch/moveit_rviz.launch">
+        <include if="$(arg rviz)" file="$(find rll_moveit_config)/launch/moveit_rviz.launch">
             <arg name="config" value="true"/>
         </include>
 
