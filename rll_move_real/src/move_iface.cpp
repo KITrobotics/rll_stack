@@ -22,7 +22,7 @@
 double cartesian_velocity = 0.4; //in m/s
 double cartesian_acceleration = 1; //in m/s²
 
-MoveIface::MoveIface(ros::NodeHandle nh)
+MoveIface::MoveIface()
 	: move_group(PLANNING_GROUP), moveit_wrapper(PLANNING_GROUP)
 {
 	// configure planner
@@ -439,7 +439,7 @@ int main (int argc, char **argv)
 	ros::AsyncSpinner spinner(0);
 	spinner.start();
 
-	MoveIface plan_sampler(nh);
+	MoveIface plan_sampler;
 
 	ros::ServiceServer service_job = nh.advertiseService("job_env", &MoveIface::run_job, &plan_sampler);
 	ros::ServiceServer service_idle = nh.advertiseService("job_idle", &MoveIface::idle, &plan_sampler);

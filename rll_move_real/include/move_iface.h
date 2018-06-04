@@ -35,7 +35,7 @@
 class MoveIface
 {
 public:
-	explicit MoveIface(ros::NodeHandle nh);
+	explicit MoveIface();
 	bool run_job(rll_worker::JobEnv::Request &req,
 		     rll_worker::JobEnv::Response &resp);
 	bool idle(rll_worker::JobEnv::Request &req,
