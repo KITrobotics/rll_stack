@@ -1,0 +1,4 @@
+ <launch>
+<test test-name="test_api" type="api_testing.py" pkg="rll_test" />
+<test test-name="test_worker" type="worker_testing.py" pkg="rll_test" time-limit="300.0"/>
+</launch>
