@@ -18,7 +18,7 @@
     <node ns="jsp" name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"
           respawn="false" output="screen">
         <param name="rate" type="int" value="1000"/>
-        <rosparam command="load" file="$(find rll_two_iiwas_control)/config/joint_state_publisher.yaml" />
+        <rosparam command="load" file="$(find rll_two_iiwas_control)/config/$(arg robot_name)_joint_state_publisher.yaml" />
         <remap from="joint_states" to="/$(arg robot_name)/joint_states_combined" />
     </node>
 
