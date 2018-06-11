@@ -1,32 +1,24 @@
 <?xml version="1.0"?>
 <launch>
-    <!-- The planning and execution components of MoveIt! configured to run -->
-    <!-- using the ROS-Industrial interface. -->
-
-    <!-- |              PARAMETERS              | -->
-    <!-- hardware_interface to use : PositionJointInterface, EffortJointInterface, VelocityJointInterface. -->
     <arg name="hardware_interface" default="PositionJointInterface"/>
-    <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
-    <arg name="robot_name_1" default="iiwa_1"/>
-    <arg name="robot_name_2" default="iiwa_2"/>
-    <arg name="rviz" default="true" />
-
+    <arg name="rviz" default="false" />
 
     <!-- Load robot 1 -->
     <include file="$(find rll_two_iiwas_moveit)/launch/moveit_planning_execution_single.launch">
-        <arg name="hardware_interface" value="PositionJointInterface"/>
+        <arg name="hardware_interface" value="$(arg hardware_interface)"/>
         <arg name="robot_name" value="iiwa_1"/>
-        <arg name="rviz" value="true" />
+        <arg name="rviz" value="$(arg rviz)" />
         <arg name="fri_port" value="30200" />
+        <arg name="can_iface" value="can0" />
     </include>
 
     <!-- Load robot 2 -->
     <include file="$(find rll_two_iiwas_moveit)/launch/moveit_planning_execution_single.launch">
-        <arg name="hardware_interface" value="PositionJointInterface"/>
-        <!-- The is gonna have its nodes/topics under a namespace with the same name. -->
+        <arg name="hardware_interface" value="$(arg hardware_interface)"/>
         <arg name="robot_name" value="iiwa_2"/>
-        <arg name="rviz" value="true" />
+        <arg name="rviz" value="$(arg rviz)" />
         <arg name="fri_port" value="30201" />
+        <arg name="can_iface" value="can1" />
     </include>
 
 
