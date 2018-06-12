@@ -1,5 +1,6 @@
 db_name: rll_test
 
+api_base_url: http://localhost:8888/
 logs_base_url: http://localhost/logs
 cams_base_url: http://localhost
 git_archive_dir: /home/rll/projects/test
