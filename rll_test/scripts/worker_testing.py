@@ -12,19 +12,33 @@ import yaml
 import time
 from os import path
 import re
-
-PASSWORD = 'password' #RLL password for submission
-URL = 'http://localhost:8888/jobs'
+import rospkg
 
 class test_Worker(unittest.TestCase):
+    PASSWORD = '' #will be set in setUpClass from rll_config
+    JOBS_API_URL = ''#will be set in setUpClass from rll_config
     
+    @classmethod
+    def setUpClass(cls):
+        
+        # settings
+        rospack = rospkg.RosPack()
+        config_path = path.join(rospack.get_path('rll_config'),"config","rll.yaml")
+        with open(config_path, 'r') as doc:
+          rll_settings = yaml.load(doc)
+        
+        cls.PASSWORD = rll_settings['secret']
+        print("Using password from rll_config")
+        api_base_url = rll_settings['api_base_url']
+        cls.JOBS_API_URL = api_base_url + "jobs"
+        print("Using %s as JOBS_API_URL from rll_config" % cls.JOBS_API_URL)
 
     def test_build_success(self):
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
     
-        payload = {'op': 'submit', 'username': random_name,'secret':PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'tower_hanoi_working'}
+        payload = {'op': 'submit', 'username': random_name,'secret':self.PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'tower_hanoi_working'}
     
-        res = requests.post(URL,data=payload)
+        res = requests.post(self.JOBS_API_URL,data=payload)
         res_json = res.json()
         print("Submit result: ",res_json)
         res_status = res_json["status"]
@@ -52,9 +66,9 @@ class test_Worker(unittest.TestCase):
     def test_build_fail(self):
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
     
-        payload = {'op': 'submit', 'username': random_name,'secret':PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'build_failure'}
+        payload = {'op': 'submit', 'username': random_name,'secret':self.PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'build_failure'}
     
-        res = requests.post(URL,data=payload)
+        res = requests.post(self.JOBS_API_URL,data=payload)
         res_json = res.json()
         print("Submit result: ",res_json)
         res_status = res_json["status"]
@@ -91,9 +105,9 @@ class test_Worker(unittest.TestCase):
     def test_job_success(self):
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
     
-        payload = {'op': 'submit', 'username': random_name,'secret':PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'tower_hanoi_working'}
+        payload = {'op': 'submit', 'username': random_name,'secret':self.PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'tower_hanoi_working'}
     
-        res = requests.post(URL,data=payload)
+        res = requests.post(self.JOBS_API_URL,data=payload)
         res_json = res.json()
         print("Submit result: ",res_json)
         res_status = res_json["status"]
@@ -131,9 +145,9 @@ class test_Worker(unittest.TestCase):
     def test_storage_fail(self):
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
     
-        payload = {'op': 'submit', 'username': random_name,'secret':PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'storage_fail'}
+        payload = {'op': 'submit', 'username': random_name,'secret':self.PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'storage_fail'}
     
-        res = requests.post(URL,data=payload)
+        res = requests.post(self.JOBS_API_URL,data=payload)
         res_json = res.json()
         print(res_json)
         res_status = res_json["status"]
@@ -171,9 +185,9 @@ class test_Worker(unittest.TestCase):
     def test_infinity_loop(self):
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
     
-        payload = {'op': 'submit', 'username': random_name,'secret':PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'infinity_loop'}
+        payload = {'op': 'submit', 'username': random_name,'secret':self.PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'infinity_loop'}
     
-        res = requests.post(URL,data=payload)
+        res = requests.post(self.JOBS_API_URL,data=payload)
         res_json = res.json()
         print(res_json)
         res_status = res_json["status"]
@@ -239,9 +253,9 @@ class test_Worker(unittest.TestCase):
         
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
         
-        payload = {'op': 'submit', 'username': random_name,'secret':PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'topics_params_services'}
+        payload = {'op': 'submit', 'username': random_name,'secret':self.PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'topics_params_services'}
         
-        res = requests.post(URL,data=payload)
+        res = requests.post(self.JOBS_API_URL,data=payload)
         res_json = res.json()
         print("Submit result: ",res_json)
         res_status = res_json["status"]
@@ -353,9 +367,9 @@ class test_Worker(unittest.TestCase):
         
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
         
-        payload = {'op': 'submit', 'username': random_name,'secret':PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'internet_check'}
+        payload = {'op': 'submit', 'username': random_name,'secret':self.PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'internet_check'}
         
-        res = requests.post(URL,data=payload)
+        res = requests.post(self.JOBS_API_URL,data=payload)
         res_json = res.json()
         print("Submit result: ",res_json)
         res_status = res_json["status"]
@@ -419,9 +433,9 @@ class test_Worker(unittest.TestCase):
         
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
         
-        payload = {'op': 'submit', 'username': random_name,'secret':PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'cpu_load'}
+        payload = {'op': 'submit', 'username': random_name,'secret':self.PASSWORD,'project':'test_projects','git_url':'https://gitlab.ipr.kit.edu/rll/test_projects.git','git_tag':'cpu_load'}
         
-        res = requests.post(URL,data=payload)
+        res = requests.post(self.JOBS_API_URL,data=payload)
         res_json = res.json()
         print("Submit result: ",res_json)
         res_status = res_json["status"]
