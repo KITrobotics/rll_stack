@@ -51,23 +51,23 @@ MoveIface::MoveIface()
 	open_gripper();
 }
 
-bool MoveIface::run_job(rll_worker::JobEnv::Request &req,
-				rll_worker::JobEnv::Response &resp)
+bool MoveIface::run_job(rll_msgs::JobEnv::Request &req,
+				rll_msgs::JobEnv::Response &resp)
 {
 	ROS_INFO("got job running request");
 
 	return true;
 }
 
-bool MoveIface::idle(rll_worker::JobEnv::Request &req,
-			     rll_worker::JobEnv::Response &resp)
+bool MoveIface::idle(rll_msgs::JobEnv::Request &req,
+			     rll_msgs::JobEnv::Response &resp)
 {
 	// Send home position when idling
 	// This ensures that the brakes are not activated and the control cycle keeps running.
 	// If we don't do this, the robot won't move when a trajectory is sent and the brakes are active.
 	resetToHome(false);
 	open_gripper();
-	resp.job.status = rll_worker::JobStatus::SUCCESS;
+	resp.job.status = rll_msgs::JobStatus::SUCCESS;
 
 	return true;
 }
