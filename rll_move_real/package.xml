@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>rll_move_real</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>RLL Move interface for the real robots</description>
 
   <maintainer email="wolfgang.wiedmeyer@kit.edu">Wolfgang Wiedmeyer</maintainer>
@@ -10,8 +10,7 @@
 
   <author email="wolfgang.wiedmeyer@kit.edu">Wolfgang Wiedmeyer</author>
 
-  <depend>rll_worker</depend>
-  <depend>rll_msgs</depend>
+  <depend>rll_move</depend>
   <depend>schunk_gripper_egl90</depend>
   <depend>moveit_wrapper</depend>
   <exec_depend>message_runtime</exec_depend>

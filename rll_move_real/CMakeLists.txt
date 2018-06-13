@@ -5,20 +5,26 @@ add_compile_options(-std=c++11)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  moveit_core
-  moveit_ros_planning
-  moveit_ros_planning_interface
-  rll_worker
+  rll_move
   schunk_gripper_egl90
   moveit_wrapper
-  rll_msgs
 )
 
 catkin_package(
-   CATKIN_DEPENDS schunk_gripper_egl90 message_runtime rll_msgs
+   INCLUDE_DIRS include
+   LIBRARIES rll_move_real
+   CATKIN_DEPENDS schunk_gripper_egl90 rll_move
 )
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-add_executable(move_iface src/move_iface.cpp)
-target_link_libraries(move_iface ${catkin_LIBRARIES})
+add_library(${PROJECT_NAME}
+  src/move_iface.cpp
+)
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES}
+)
+
+add_executable(move_iface_full src/move_iface_full_node.cpp)
+target_link_libraries(move_iface_full rll_move_real ${catkin_LIBRARIES})

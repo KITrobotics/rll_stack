@@ -17,48 +17,29 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef RLL_MOVE_IFACE_H
-#define RLL_MOVE_IFACE_H
+#ifndef RLL_MOVE_IFACE_REAL_H
+#define RLL_MOVE_IFACE_REAL_H
 
-#include <ros/ros.h>
 #include <std_srvs/Trigger.h>
 
-#include <rll_msgs/JobEnv.h>
-#include <rll_msgs/PickPlace.h>
-#include <rll_msgs/MoveLin.h>
-#include <rll_msgs/MoveJoints.h>
+#include <rll_move/move_iface.h>
 #include <schunk_gripper_egl90/MoveGrip.h>
 #include <schunk_gripper_egl90/MovePos.h>
-#include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit_wrapper/moveit_wrapper.h>
 
-class MoveIface
+class RLLMoveIfaceReal: public RLLMoveIface
 {
 public:
-	explicit MoveIface();
-	bool run_job(rll_msgs::JobEnv::Request &req,
-		     rll_msgs::JobEnv::Response &resp);
-	bool idle(rll_msgs::JobEnv::Request &req,
-		  rll_msgs::JobEnv::Response &resp);
-	bool pick_place(rll_msgs::PickPlace::Request &req,
-			rll_msgs::PickPlace::Response &resp);
-	bool move_lin(rll_msgs::MoveLin::Request &req,
-		      rll_msgs::MoveLin::Response &resp);
-	bool move_joints(rll_msgs::MoveJoints::Request &req,
-			 rll_msgs::MoveJoints::Response &resp);
-	void resetToHome(bool info = true);
-	void close_gripper();
-	void open_gripper();
+	explicit RLLMoveIfaceReal();
 
-	~MoveIface();
-  
+	bool close_gripper() override;
+	bool open_gripper() override;
+
 private:
-	const std::string PLANNING_GROUP = "manipulator";
-	moveit::planning_interface::MoveGroupInterface move_group;
-
 	MoveItWrapper moveit_wrapper;
 
-	bool runTrajectory(bool info = true);
+	bool modify_lin_trajectory(moveit_msgs::RobotTrajectory &trajectory) override;
+	bool modify_ptp_trajectory(moveit_msgs::RobotTrajectory &trajectory) override;
 	int gripper_reference_motion();
 	int gripper_move_grip(float speed, float current);
 	int gripper_stop();
@@ -66,7 +47,7 @@ private:
 	int gripper_acknowledge();
 };
 
-#endif  // RLL_MOVE_IFACE_H
+#endif  // RLL_MOVE_IFACE_REAL_H
 
 /*
  * Local Variables:
