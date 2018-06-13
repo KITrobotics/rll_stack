@@ -21,8 +21,8 @@
 import rospy
 import rospkg
 import yaml
-from rll_worker.srv import *
-from rll_worker.msg import *
+from rll_msgs.srv import JobEnv
+from rll_msgs.msg import JobStatus
 
 import docker
 import pymongo
@@ -33,11 +33,6 @@ import traceback
 import re
 from os import path, makedirs, remove
 from shutil import rmtree
-
-# the iiwas activate their brakes around 45 minutes of inactivity
-# work around this by sending idle at least every iiwa_timeout
-iiwa_timeout = 0.3 * 3600
-idle_start = time.time()
 
 def job_loop(jobs_collection, dClient, ns):
     # rospy.loginfo("searching for new job in namespace '%s'", ns)
@@ -51,7 +46,7 @@ def job_loop(jobs_collection, dClient, ns):
                                               sort=[("created", pymongo.ASCENDING)])
 
     if job == None:
-        job_idling()
+        rospy.sleep(0.1)
         return
 
     job_id = job["_id"]
@@ -99,30 +94,11 @@ def job_loop(jobs_collection, dClient, ns):
 
     rospy.loginfo("finished job with id '%s' in namespace '%s'", job_id, ns)
 
-    # reset time counter
-    idle_start = time.time()
-
-
-def job_idling():
-    global idle_start
-
-    # rospy.loginfo("no job in queue")
-
-    if (time.time() - idle_start) > iiwa_timeout:
-        rospy.wait_for_service("job_idle")
-        try:
-            resp = job_idle(True)
-        except rospy.ServiceException, e:
-            rospy.loginfo("service call failed: %s", e)
-        idle_start = time.time()
-    else:
-        rospy.sleep(0.1)
-
 
 def run_job(git_url, git_tag, username, job_id, project):
     try:
         # TODO: don't grant full access to host network
-        container = dClient.containers.create("rll_exp_env:v2", network_mode="host",
+        container = dClient.containers.create("rll_exp_env:v1", network_mode="host",
                                               detach=True, tty=True,
                                               nano_cpus=int(1e9), # limit to one CPU
                                               mem_limit="1g", # limit RAM to 1GB
