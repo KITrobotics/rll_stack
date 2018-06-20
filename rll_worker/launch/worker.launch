@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="all_robots" default="false" />
-  <arg unless="$(arg all_robots)" name="robot" default="iiwa_2" />
+  <arg unless="$(arg all_robots)" name="robot" default="iiwa" />
 
   <group if="$(arg all_robots)">
     <node ns="iiwa_1" name="rll_worker" pkg="rll_worker" type="worker.py" output="screen">

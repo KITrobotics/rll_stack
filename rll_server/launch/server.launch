@@ -1,4 +1,6 @@
- 
+<?xml version="1.0"?>
 <launch>
+
   <node name="server" pkg="rll_server" type="server.py" />
+
 </launch>
