@@ -1,4 +1,4 @@
-# Robot Learning Lab Stack
+# Robot Learning Lab Job Processing Pipeline
 
 ## Quick Installation
 
@@ -8,10 +8,6 @@
     `catkin_init_workspace`   
     `cd src`   
     `git clone https://gitlab.ipr.kit.edu/rll/rll_stack.git`   
-    `git clone https://gitlab.ipr.kit.edu/rll/schunk_gripper_egl90.git`   
-    `git clone https://gitlab.ipr.kit.edu/rll/moveit_wrapper.git`   
-    `git clone https://gitlab.ipr.kit.edu/rll/moveit.git`   
-    `git clone https://gitlab.ipr.kit.edu/rll/iiwa_fri_hw_interface.git`   
     `cd ..`
 
 2. Install dependencies:
