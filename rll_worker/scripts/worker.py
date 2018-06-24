@@ -86,11 +86,17 @@ def job_loop(jobs_collection, dClient, ns):
                                                   "job_end": datetime.datetime.now(),
                                                   "job_result": job_result_codes_to_string(resp.job.status)}})
 
+    if (resp.job.status == JobStatus.INTERNAL_ERROR):
+        rospy.logfatal("Internal error happened when running job environment, please investigate!")
+
     # reset robot and environment
     try:
         resp = job_idle(True)
     except rospy.ServiceException, e:
-        rospy.loginfo("service call failed: %s", e)
+        rospy.loginfo("idle service call failed: %s", e)
+
+    if (resp.job.status == JobStatus.INTERNAL_ERROR):
+        rospy.logfatal("Internal error happened when running idle service, please investigate!")
 
     rospy.loginfo("finished job with id '%s' in namespace '%s'", job_id, ns)
 
