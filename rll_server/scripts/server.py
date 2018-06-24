@@ -103,7 +103,6 @@ class JobsHandler(tornado.web.RequestHandler):
         git_url = self.get_argument("git_url")
         git_tag = self.get_argument("git_tag")
 
-        # TODO: check if valid project
         rospy.loginfo("got a new submission with username '%s', Git repo URL '%s' and tag '%s' for project '%s'",
                       username, git_url, git_tag, project)
 
@@ -111,6 +110,10 @@ class JobsHandler(tornado.web.RequestHandler):
         if not secret == self.rll_settings["secret"]:
             rospy.logwarn("authentication error")
             raise tornado.web.HTTPError(401)
+
+        if not project in self.rll_settings["projects"]:
+            rospy.logwarn("unknown project name in submission")
+            raise tornado.web.HTTPError(400)
 
         # check if there is already a job in the queue for this user
         # TODO: try to solve this with indexing

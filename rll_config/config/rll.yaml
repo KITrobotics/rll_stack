@@ -1,5 +1,6 @@
 db_name: rll_test
 
+# URLs
 api_base_url: http://localhost:8888/
 logs_base_url: http://localhost/logs
 cams_base_url: http://localhost
@@ -7,3 +8,8 @@ git_archive_dir: /home/rll/projects/test
 logs_save_dir: /home/rll/logs/test
 
 secret: SET_YOUR_SECRET_HERE
+
+projects:
+  - tower_of_hanoi
+  - greetings
+  - path_planning
