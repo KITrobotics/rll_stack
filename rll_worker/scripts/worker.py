@@ -33,13 +33,14 @@ import traceback
 import re
 from os import path, makedirs, remove
 from shutil import rmtree
+import sys
 
 def job_loop(jobs_collection, dClient, ns):
     # rospy.loginfo("searching for new job in namespace '%s'", ns)
     global idle_start
 
     # TODO: use indexing
-    job = jobs_collection.find_one_and_update({"status": "submitted"},
+    job = jobs_collection.find_one_and_update({"project": project_name, "status": "submitted"},
                                               {"$set": {"status": "running",
                                                         "ns": ns,
                                                         "job_start": datetime.datetime.now()}},
@@ -52,7 +53,6 @@ def job_loop(jobs_collection, dClient, ns):
     job_id = job["_id"]
     git_url = job["git_url"]
     git_tag = job["git_tag"]
-    # TODO: for now same as package name
     project = job["project"]
     username = job["username"]
 
@@ -88,6 +88,7 @@ def job_loop(jobs_collection, dClient, ns):
 
     if (resp.job.status == JobStatus.INTERNAL_ERROR):
         rospy.logfatal("Internal error happened when running job environment, please investigate!")
+        sys.exit(1)
 
     # reset robot and environment
     try:
@@ -97,6 +98,7 @@ def job_loop(jobs_collection, dClient, ns):
 
     if (resp.job.status == JobStatus.INTERNAL_ERROR):
         rospy.logfatal("Internal error happened when running idle service, please investigate!")
+        sys.exit(1)
 
     rospy.loginfo("finished job with id '%s' in namespace '%s'", job_id, ns)
 
@@ -136,8 +138,7 @@ def run_job(git_url, git_tag, username, job_id, project):
         finish_container(container)
         return False;
 
-    # TODO: read from config file
-    launch_file = "move_sender.launch"
+    launch_file = project_settings["launch_client"]
     launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
     # TODO: we need to detach here (detach=True)
     cmd_result = container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"" , stdin=True)
@@ -226,6 +227,14 @@ if __name__ == '__main__':
         rll_settings = yaml.load(doc)
         db_name = rll_settings["db_name"]
         rospy.loginfo("using database %s", db_name)
+
+    project_name = rospy.get_param("~project")
+    rospy.loginfo("processing project %s", project_name)
+    try:
+        project_settings = rll_settings["project_settings"][project_name]
+    except:
+        rospy.logfatal("failed to retrieve project settings")
+        sys.exit(1)
 
     db_client = pymongo.MongoClient()
     jobs_collection = db_client[db_name].jobs

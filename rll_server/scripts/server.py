@@ -117,7 +117,8 @@ class JobsHandler(tornado.web.RequestHandler):
 
         # check if there is already a job in the queue for this user
         # TODO: try to solve this with indexing
-        self.jobs_collection.find_one({"username": username, "status": {"$in": ["submitted", "running"]}},
+        self.jobs_collection.find_one({"username": username, "project": project,
+                                       "status": {"$in": ["submitted", "running"]}},
                                  callback=self._db_open_job_cb)
 
     def _db_open_job_cb(self, job, error):

@@ -12,4 +12,15 @@ secret: SET_YOUR_SECRET_HERE
 projects:
   - tower_of_hanoi
   - greetings
-  - path_planning
+  - rll_planning_project
+
+project_settings:
+  rll_planning_project:
+    launch_iface: planning_iface.launch
+    launch_client: path_planner.launch
+  greetings:
+    launch_iface: move_iface.launch
+    launch_client: move_sender.launch
+  tower_of_hanoi:
+    launch_iface: move_iface.launch
+    launch_client: move_sender.launch
