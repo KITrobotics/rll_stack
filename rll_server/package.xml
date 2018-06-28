@@ -10,5 +10,6 @@
 
   <buildtool_depend>catkin</buildtool_depend>
   <depend>python-tornado</depend>
+  <depend>python-git</depend>
 
 </package>
