@@ -53,7 +53,7 @@ In order to edit the dapperbox sites we can use markdown and simply edit the con
 In order to understand the folder hierachie in dapperboxs assests folder, read: 
 http://dapperdox.io/docs/author-concepts
 
-Dapperbox needs a swagger.json file in the specification folder. So make sure to use the newest openapi.yaml for RLL and convert it to json if necessery. (e.g https://www.json2yaml.com/)
+Dapperbox needs a swagger.json file in the specification folder. So make sure to use the newest openapi.yaml for RLL and convert it to json if necessary. (e.g https://www.json2yaml.com/)
    
 
 #### Misc
