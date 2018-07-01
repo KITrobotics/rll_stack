@@ -172,11 +172,12 @@ class JobsHandler(tornado.web.RequestHandler):
         rospy.loginfo("job status db callback with job %s and error %s", job, error)
 
         if error:
-            raise tornado.web.HTTPError(500, error)
+            result = {"status": "error", "error": "No job with this ID"}
         else:
             result = self._build_status_resp(job)
-            self.write(json_encode(result))
-            self.finish()
+
+        self.write(json_encode(result))
+        self.finish()
 
     def _db_job_logs_cb(self, job, error):
         rospy.loginfo("job log db callback with job %s and error %s", job, error)
