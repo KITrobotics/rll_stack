@@ -115,6 +115,13 @@ class JobsHandler(tornado.web.RequestHandler):
             rospy.logwarn("unknown project name in submission")
             raise tornado.web.HTTPError(400)
 
+        if not username.isalnum():
+            rospy.logwarn("username invalid")
+            response = {"status": "error", "error": "Username invalid"}
+            self.write(json_encode(response))
+            self.finish()
+            return
+
         # check if there is already a job in the queue for this user
         # TODO: try to solve this with indexing
         self.jobs_collection.find_one({"username": username, "project": project,
