@@ -176,6 +176,8 @@ def get_exp_code(git_url, git_tag, username, job_id, project, container):
 
     with open(repo_archive_file, 'rb') as frp:
         container.start()
+        # wait a moment to make sure that the container is started
+        rospy.sleep(0.2)
         container.exec_run("mkdir " + ws_repo_path)
         container.put_archive(ws_repo_path, frp)
         rospy.loginfo("uploaded project to container")
