@@ -31,6 +31,7 @@ from bson.objectid import ObjectId
 import git
 import signal
 import datetime
+import re
 
 app_closing = False
 
@@ -115,7 +116,7 @@ class JobsHandler(tornado.web.RequestHandler):
             rospy.logwarn("unknown project name in submission")
             raise tornado.web.HTTPError(400)
 
-        if not username.isalnum():
+        if not re.match("^[A-Za-z0-9_-]+$", username):
             rospy.logwarn("username invalid")
             response = {"status": "error", "error": "Username invalid"}
             self.write(json_encode(response))
