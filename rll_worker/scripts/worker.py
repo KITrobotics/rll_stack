@@ -66,20 +66,31 @@ def job_loop(jobs_collection, dClient, ns):
     else:
         rospy.loginfo("running job succeeded")
 
-    rospy.wait_for_service("job_env")
     try:
-        job_env = rospy.ServiceProxy('job_env', JobEnv)
-        resp = job_env(True)
-        rospy.loginfo("successfully run job environment with job status %d", resp.job.status)
-    except rospy.ServiceException, e:
-        rospy.loginfo("service call failed: %s", e)
+        rospy.wait_for_service("job_env", timeout=2.0)
+    except:
         # reset the job and run it later again
         # TODO: be more transparent about this by using a different status code
         jobs_collection.find_one_and_update({"_id": job_id},
                                             {"$set": {"status": "submitted",
                                                       "job_end": datetime.datetime.now(),
                                                       "job_result": "job env not available"}})
-        return
+        rospy.logfatal("Job env service is not available, please investigate!")
+        sys.exit(1)
+
+    try:
+        job_env = rospy.ServiceProxy('job_env', JobEnv)
+        resp = job_env(True)
+        rospy.loginfo("successfully run job environment with job status %d", resp.job.status)
+    except rospy.ServiceException, e:
+        rospy.logfatal("service call failed: %s, please investigate!", e)
+        # reset the job and run it later again
+        # TODO: be more transparent about this by using a different status code
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "submitted",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "job env not available"}})
+        sys.exit(1)
 
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": "finished",
