@@ -104,9 +104,6 @@ class JobsHandler(tornado.web.RequestHandler):
         git_url = self.get_argument("git_url")
         git_tag = self.get_argument("git_tag")
 
-        rospy.loginfo("got a new submission with username '%s', Git repo URL '%s' and tag '%s' for project '%s'",
-                      username, git_url, git_tag, project)
-
         # TODO: better retrieve this from db
         if not secret == self.rll_settings["secret"]:
             rospy.logwarn("authentication error")
@@ -122,6 +119,9 @@ class JobsHandler(tornado.web.RequestHandler):
             self.write(json_encode(response))
             self.finish()
             return
+
+        rospy.loginfo("got a new submission with username '%s', Git repo URL '%s' and tag '%s' for project '%s'",
+                      username, git_url, git_tag, project)
 
         # check if there is already a job in the queue for this user
         # TODO: try to solve this with indexing
