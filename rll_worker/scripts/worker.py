@@ -34,6 +34,9 @@ import re
 from os import path, makedirs, remove
 from shutil import rmtree
 import sys
+import datetime
+
+environment_containers = []
 
 def job_loop(jobs_collection, dClient, ns):
     # rospy.loginfo("searching for new job in namespace '%s'", ns)
@@ -59,13 +62,12 @@ def job_loop(jobs_collection, dClient, ns):
     rospy.loginfo("got job with id '%s' for project '%s', Git URL '%s', Git Tag '%s' and create date %s", job_id,
                   project, git_url, git_tag, str(job["created"]))
 
-    success = run_job(git_url, git_tag, username, job_id, project)
+    success, client_log, client_container = start_job(git_url, git_tag, username, job_id, project)
     if not success:
-        rospy.loginfo("running job failed, returning")
+        rospy.loginfo("starting job failed, returning")
         return
-    else:
-        rospy.loginfo("running job succeeded")
 
+    rospy.loginfo("running job env");
     try:
         rospy.wait_for_service("job_env", timeout=2.0)
     except:
@@ -81,7 +83,7 @@ def job_loop(jobs_collection, dClient, ns):
     try:
         job_env = rospy.ServiceProxy('job_env', JobEnv)
         resp = job_env(True)
-        rospy.loginfo("successfully run job environment with job status %d", resp.job.status)
+        rospy.loginfo("successfully run job environment with job status %s", job_result_codes_to_string(resp.job.status))
     except rospy.ServiceException, e:
         rospy.logfatal("service call failed: %s, please investigate!", e)
         # reset the job and run it later again
@@ -101,6 +103,15 @@ def job_loop(jobs_collection, dClient, ns):
         rospy.logfatal("Internal error happened when running job environment, please investigate!")
         sys.exit(1)
 
+    # exec_log = capture_exec_logs(client_container)
+    # rospy.loginfo("starting to print from blocking")
+    # for val in client_log:
+    #     rospy.loginfo("printing from blocking")
+    #     print (val)
+    client_log = client_container.attach(stdout=True, stderr=True, logs=True)
+    write_logs(job_id, client_log, "client")
+    # finish_container(client_container)
+
     # reset robot and environment
     try:
         resp = job_idle(True)
@@ -114,15 +125,14 @@ def job_loop(jobs_collection, dClient, ns):
     rospy.loginfo("finished job with id '%s' in namespace '%s'", job_id, ns)
 
 
-def run_job(git_url, git_tag, username, job_id, project):
+def start_job(git_url, git_tag, username, job_id, project):
     try:
-        # TODO: don't grant full access to host network
-        container = dClient.containers.create("rll_exp_env:v1", network_mode="host",
-                                              detach=True, tty=True,
-                                              nano_cpus=int(1e9), # limit to one CPU
-                                              mem_limit="1g", # limit RAM to 1GB
-                                              memswap_limit="1g", # limit RAM+SWAP to 1GB
-                                              storage_opt={"size": "10G"}) # limit disk space to 10GB
+        #client container
+        date = get_time_string()
+        cc_name = "cc_" +date
+        #Terminal command to remove all containers from image rll_exp_env:v1: docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll_exp_env:v1 --format="{{.ID}}"))
+        client_container = create_container(cc_name)
+
     except:
         rospy.logerr("failed to create container:\n%s", traceback.format_exc())
         # reset job for rerun
@@ -133,11 +143,12 @@ def run_job(git_url, git_tag, username, job_id, project):
         return False
 
     # TODO: handle clone failures
-    success = get_exp_code(git_url, git_tag, username, job_id, project, container)
+    success = get_exp_code(git_url, git_tag, username, job_id, project, client_container)
     if not success:
         return False
 
-    cmd_result = container.exec_run("catkin build --no-status", stdin=True, tty=True)
+    rospy.loginfo("building project")
+    cmd_result = client_container.exec_run("catkin build --no-status", stdin=True, tty=True)
     write_logs(job_id, cmd_result[1], "build")
     if cmd_result[0] != 0:
         rospy.logerr("building project failed")
@@ -146,26 +157,24 @@ def run_job(git_url, git_tag, username, job_id, project):
                                             {"$set": {"status": "finished",
                                                       "job_end": datetime.datetime.now(),
                                                       "job_result": "building project failed"}})
-        finish_container(container)
+        finish_container(client_container)
         return False;
 
     launch_file = project_settings["launch_client"]
     launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
-    # TODO: we need to detach here (detach=True)
-    cmd_result = container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"" , stdin=True)
-    write_logs(job_id, cmd_result[1], "launch")
-    if cmd_result[0] != 0:
-        rospy.logerr("launching project failed")
+    rospy.loginfo("running launch command %s", launch_cmd)
+    # environment={"PYTHONUNBUFFERED": "0"}
+    # launch_res = client_container.exec_run("bash -c \"echo \"hello world\" && source devel/setup.bash && " + launch_cmd + " | head -c 1G > /tmp/client.log &\"",
+    #                                        tty=True, stdin=False, environment={"PYTHONUNBUFFERED": "0"})
+    # launch_res = client_container.exec_run("bash -c \"while true; do echo \'hello world\'; sleep 1; done &> /tmp/client.log\"",
+    #                                        tty=True, detach=True)
+    # Piping to dd ensures that the log size does not exceed 10MB
+    # PYTHONUNBUFFERED needs to be disabled to ensure that data is piped before the app finishes and when we are detached
+    launch_res = client_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " | dd bs=1 count=10000 &> /tmp/client.log\"",
+                                           tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0"})
+    rospy.loginfo("launched client")
 
-        jobs_collection.find_one_and_update({"_id": job_id},
-                                            {"$set": {"status": "finished",
-                                                      "job_end": datetime.datetime.now(),
-                                                      "job_result": "launching project failed"}})
-        finish_container(container)
-        return False;
-
-    finish_container(container)
-    return True
+    return True, launch_res[1], client_container
 
 
 def get_exp_code(git_url, git_tag, username, job_id, project, container):
@@ -200,9 +209,22 @@ def get_exp_code(git_url, git_tag, username, job_id, project, container):
     return True
 
 
+def create_container(container_name):
+    # TODO: don't grant full access to host network
+     return dClient.containers.create("rll_exp_env:v1", network_mode="host",
+                                              detach=True, tty=True,
+                                              nano_cpus=int(1e9), # limit to one CPU
+                                              mem_limit="1g", # limit RAM to 1GB
+                                              memswap_limit="1g", # limit RAM+SWAP to 1GB
+                                              storage_opt={"size": "10G"}, # limit disk space to 10GB
+                                              name = container_name)
+
 def finish_container(container):
     container.stop()
     container.remove()
+
+# def capture_exec_logs(container):
+#     return container.attach(stdout=True, stderr=True, logs=True)
 
 def write_logs(job_id, log_str, log_type):
     rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
@@ -212,7 +234,7 @@ def write_logs(job_id, log_str, log_type):
     ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
     log_str = ansi_escape.sub('', log_str)
 
-    log_folder = rll_settings["logs_save_dir"] + "/" + str(job_id)
+    log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
     if not path.exists(log_folder):
         makedirs(log_folder)
     log_file = log_folder + "/" + log_type  + ".log"
@@ -228,8 +250,39 @@ def job_result_codes_to_string(status):
     return job_codes.get(status, "unknown")
 
 
+def setup_environment_container(dClient):
+        date = get_time_string()
+        ic_name = "ic_"+date
+        sc_name = "sc_"+date
+
+        # TODO: we need to have a dedicated Docker image with the project code
+        # interface_container = create_container(ic_name)
+
+        # rospy.loginfo("Starting interface container: " + ic_name)
+        # interface_container.start()
+        # launch_file = project_settings["launch_iface"]
+        # launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns
+        # ic_result = interface_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"",
+        #                                          stdin=True, detach=True, tty=True)
+
+        # environment_containers.append(interface_container)
+
+def on_shutdown_call():
+    print "shutdown call received! Trying to shutdown environment containers"
+    for cont in environment_containers:
+        finish_container(cont)
+
+def get_time_string():
+        cur_time = time.time()
+        value = datetime.datetime.fromtimestamp(cur_time)
+        return value.strftime('%d_%H-%M-%S')
+
+
 if __name__ == '__main__':
     rospy.init_node('job_worker')
+
+    # register shutdown call
+    rospy.on_shutdown(on_shutdown_call)
 
     ns = rospy.get_namespace()
 
@@ -254,6 +307,7 @@ if __name__ == '__main__':
 
     dClient = docker.from_env()
     job_idle = rospy.ServiceProxy("job_idle", JobEnv)
+    setup_environment_container(dClient)
 
     while not rospy.is_shutdown():
         job_loop(jobs_collection, dClient, ns)
