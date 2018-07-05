@@ -62,7 +62,7 @@ def job_loop(jobs_collection, dClient, ns):
     rospy.loginfo("got job with id '%s' for project '%s', Git URL '%s', Git Tag '%s' and create date %s", job_id,
                   project, git_url, git_tag, str(job["created"]))
 
-    success, client_log, client_container = start_job(git_url, git_tag, username, job_id, project)
+    success, client_container = start_job(git_url, git_tag, username, job_id, project)
     if not success:
         rospy.loginfo("starting job failed, returning")
         return
@@ -94,6 +94,10 @@ def job_loop(jobs_collection, dClient, ns):
                                                       "job_result": "job env not available"}})
         sys.exit(1)
 
+    # client_log = get_client_log(client_container)
+    # write_logs(job_id, client_log, "client")
+    # finish_container(client_container)
+
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": "finished",
                                                   "job_end": datetime.datetime.now(),
@@ -102,15 +106,6 @@ def job_loop(jobs_collection, dClient, ns):
     if (resp.job.status == JobStatus.INTERNAL_ERROR):
         rospy.logfatal("Internal error happened when running job environment, please investigate!")
         sys.exit(1)
-
-    # exec_log = capture_exec_logs(client_container)
-    # rospy.loginfo("starting to print from blocking")
-    # for val in client_log:
-    #     rospy.loginfo("printing from blocking")
-    #     print (val)
-    client_log = client_container.attach(stdout=True, stderr=True, logs=True)
-    write_logs(job_id, client_log, "client")
-    # finish_container(client_container)
 
     # reset robot and environment
     try:
@@ -129,8 +124,9 @@ def start_job(git_url, git_tag, username, job_id, project):
     try:
         #client container
         date = get_time_string()
-        cc_name = "cc_" +date
-        #Terminal command to remove all containers from image rll_exp_env:v1: docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll_exp_env:v1 --format="{{.ID}}"))
+        cc_name = "cc_" + date
+        # terminal command to remove all containers from image "rll_exp_env:v1":
+        # docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll_exp_env:v1 --format="{{.ID}}"))
         client_container = create_container(cc_name)
 
     except:
@@ -163,18 +159,12 @@ def start_job(git_url, git_tag, username, job_id, project):
     launch_file = project_settings["launch_client"]
     launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
     rospy.loginfo("running launch command %s", launch_cmd)
-    # environment={"PYTHONUNBUFFERED": "0"}
-    # launch_res = client_container.exec_run("bash -c \"echo \"hello world\" && source devel/setup.bash && " + launch_cmd + " | head -c 1G > /tmp/client.log &\"",
-    #                                        tty=True, stdin=False, environment={"PYTHONUNBUFFERED": "0"})
-    # launch_res = client_container.exec_run("bash -c \"while true; do echo \'hello world\'; sleep 1; done &> /tmp/client.log\"",
-    #                                        tty=True, detach=True)
     # Piping to dd ensures that the log size does not exceed 10MB
     # PYTHONUNBUFFERED needs to be disabled to ensure that data is piped before the app finishes and when we are detached
-    launch_res = client_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " | dd bs=1 count=10000 &> /tmp/client.log\"",
-                                           tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0"})
-    rospy.loginfo("launched client")
+    client_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " | dd bs=1 count=10000 &> /tmp/client.log\"",
+                              tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0"})
 
-    return True, launch_res[1], client_container
+    return True, client_container
 
 
 def get_exp_code(git_url, git_tag, username, job_id, project, container):
@@ -223,8 +213,8 @@ def finish_container(container):
     container.stop()
     container.remove()
 
-# def capture_exec_logs(container):
-#     return container.attach(stdout=True, stderr=True, logs=True)
+# def get_client_log(container):
+    
 
 def write_logs(job_id, log_str, log_type):
     rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
@@ -252,10 +242,11 @@ def job_result_codes_to_string(status):
 
 def setup_environment_container(dClient):
         date = get_time_string()
-        ic_name = "ic_"+date
-        sc_name = "sc_"+date
+        ic_name = "ic_" + date
+        sc_name = "sc_" + date
 
-        # TODO: we need to have a dedicated Docker image with the project code
+        # TODO: make this work
+        # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
         # interface_container = create_container(ic_name)
 
         # rospy.loginfo("Starting interface container: " + ic_name)
