@@ -35,6 +35,8 @@ from os import path, makedirs, remove
 from shutil import rmtree
 import sys
 import datetime
+import tarfile
+from StringIO import StringIO
 
 environment_containers = []
 
@@ -94,9 +96,8 @@ def job_loop(jobs_collection, dClient, ns):
                                                       "job_result": "job env not available"}})
         sys.exit(1)
 
-    # client_log = get_client_log(client_container)
-    # write_logs(job_id, client_log, "client")
-    # finish_container(client_container)
+    get_client_log(job_id, client_container)
+    finish_container(client_container)
 
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": "finished",
@@ -213,8 +214,19 @@ def finish_container(container):
     container.stop()
     container.remove()
 
-# def get_client_log(container):
-    
+def get_client_log(job_id, container):
+    log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
+    # log_file = path.join(log_folder, "client.log")
+
+    container.exec_run("chown root: /tmp/client.log", user="root")
+    strm, status = container.get_archive("/tmp/client.log")
+    # with open(log_file, 'w') as outfile:
+    #     for d in strm:
+    #         outfile.write(d)
+
+    for d in strm:
+        pw_tar = tarfile.TarFile(fileobj=StringIO(d.decode('utf-8')))
+        pw_tar.extractall(log_folder)
 
 def write_logs(job_id, log_str, log_type):
     rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
