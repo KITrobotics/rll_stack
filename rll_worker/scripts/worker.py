@@ -160,9 +160,8 @@ def start_job(git_url, git_tag, username, job_id, project):
     launch_file = project_settings["launch_client"]
     launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
     rospy.loginfo("running launch command %s", launch_cmd)
-    # Piping to dd ensures that the log size does not exceed 10MB
     # PYTHONUNBUFFERED needs to be disabled to ensure that data is piped before the app finishes and when we are detached
-    client_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " | dd bs=1 count=10000 &> /tmp/client.log\"",
+    client_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " &> /tmp/client.log\"",
                               tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0"})
 
     return True, client_container
@@ -216,17 +215,22 @@ def finish_container(container):
 
 def get_client_log(job_id, container):
     log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
-    # log_file = path.join(log_folder, "client.log")
+    log_file = path.join(log_folder, "client.log")
+    size_counter = 0
 
     container.exec_run("chown root: /tmp/client.log", user="root")
     strm, status = container.get_archive("/tmp/client.log")
-    # with open(log_file, 'w') as outfile:
-    #     for d in strm:
-    #         outfile.write(d)
-
-    for d in strm:
-        pw_tar = tarfile.TarFile(fileobj=StringIO(d.decode('utf-8')))
-        pw_tar.extractall(log_folder)
+    with open(log_file, 'w') as outfile:
+        for d in strm:
+            size_counter += 1
+            # chunks are 2MB and we limit log size to 10MB
+            # so counter shouldn't be bigger than 5, but for some reason,
+            # only this value is right
+            if size_counter > 320:
+                rospy.logwarn("Maximum log size exeeded")
+                outfile.write("\nError: maximum log size exeeded\n")
+                return
+            outfile.write(d)
 
 def write_logs(job_id, log_str, log_type):
     rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
