@@ -128,7 +128,7 @@ def start_job(git_url, git_tag, username, job_id, project):
         cc_name = "cc_" + date
         # terminal command to remove all containers from image "rll_exp_env:v1":
         # docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll_exp_env:v1 --format="{{.ID}}"))
-        client_container = create_container(cc_name)
+        client_container = create_container(cc_name, False)
 
     except:
         rospy.logerr("failed to create container:\n%s", traceback.format_exc())
@@ -162,7 +162,8 @@ def start_job(git_url, git_tag, username, job_id, project):
     rospy.loginfo("running launch command %s", launch_cmd)
     # PYTHONUNBUFFERED needs to be disabled to ensure that data is piped before the app finishes and when we are detached
     client_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " &> /tmp/client.log\"",
-                              tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0"})
+                              tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0",
+                                                                  "ROS_MASTER_URI": "http://" + ic_name + ":11311"})
 
     return True, client_container
 
@@ -199,15 +200,16 @@ def get_exp_code(git_url, git_tag, username, job_id, project, container):
     return True
 
 
-def create_container(container_name):
-    # TODO: don't grant full access to host network
-     return dClient.containers.create("rll_exp_env:v1", network_mode="host",
-                                              detach=True, tty=True,
-                                              nano_cpus=int(1e9), # limit to one CPU
-                                              mem_limit="1g", # limit RAM to 1GB
-                                              memswap_limit="1g", # limit RAM+SWAP to 1GB
-                                              storage_opt={"size": "10G"}, # limit disk space to 10GB
-                                              name = container_name)
+def create_container(container_name, all_ports_open):
+
+    return dClient.containers.create("rll_exp_env:v1", network=net_name,
+                                     publish_all_ports=all_ports_open,
+                                     detach=True, tty=True,
+                                     nano_cpus=int(1e9), # limit to one CPU
+                                     mem_limit="1g", # limit RAM to 1GB
+                                     memswap_limit="1g", # limit RAM+SWAP to 1GB
+                                     storage_opt={"size": "10G"}, # limit disk space to 10GB
+                                     name = container_name)
 
 def finish_container(container):
     container.stop()
@@ -257,26 +259,16 @@ def job_result_codes_to_string(status):
 
 
 def setup_environment_container(dClient):
-        date = get_time_string()
-        ic_name = "ic_" + date
-        sc_name = "sc_" + date
 
-        # TODO: us ns for naming this
-        net_name = "testing" + date
         dClient.networks.create(net_name);
 
-        iface_container = dClient.containers.create("rll_exp_env:v1", network=net_name,
-                                                    publish_all_ports=True,
-                                                    detach=True, tty=True,
-                                                    nano_cpus=int(1e9), # limit to one CPU
-                                                    mem_limit="1g", # limit RAM to 1GB
-                                                    memswap_limit="1g", # limit RAM+SWAP to 1GB
-                                                    storage_opt={"size": "10G"}, # limit disk space to 10GB
-                                                    name = ic_name)
+        iface_container = create_container(ic_name, True)
 
         iface_container.start()
         rospy.loginfo("Started interface container: " + ic_name)
-        environment_containers.append(interface_container)
+        environment_containers.append(iface_container)
+
+        iface_container.exec_run("bash -c \"source devel/setup.bash && roscore\"", tty=True, detach=True, environment={"ROS_HOSTNAME": ic_name})
         
         # TODO: make this work
         # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
@@ -325,8 +317,13 @@ if __name__ == '__main__':
     db_client = pymongo.MongoClient()
     jobs_collection = db_client[db_name].jobs
 
-    dClient = docker.from_env()
     job_idle = rospy.ServiceProxy("job_idle", JobEnv)
+
+    dClient = docker.from_env()
+    # TODO: us ns for naming this
+    date = get_time_string()
+    ic_name = "ic_" + date
+    net_name = "testing" + date
     setup_environment_container(dClient)
 
     while not rospy.is_shutdown():
