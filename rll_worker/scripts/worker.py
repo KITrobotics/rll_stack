@@ -261,18 +261,31 @@ def setup_environment_container(dClient):
         ic_name = "ic_" + date
         sc_name = "sc_" + date
 
+        # TODO: us ns for naming this
+        net_name = "testing" + date
+        dClient.networks.create(net_name);
+
+        iface_container = dClient.containers.create("rll_exp_env:v1", network=net_name,
+                                                    publish_all_ports=True,
+                                                    detach=True, tty=True,
+                                                    nano_cpus=int(1e9), # limit to one CPU
+                                                    mem_limit="1g", # limit RAM to 1GB
+                                                    memswap_limit="1g", # limit RAM+SWAP to 1GB
+                                                    storage_opt={"size": "10G"}, # limit disk space to 10GB
+                                                    name = ic_name)
+
+        iface_container.start()
+        rospy.loginfo("Started interface container: " + ic_name)
+        environment_containers.append(interface_container)
+        
         # TODO: make this work
         # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
-        # interface_container = create_container(ic_name)
 
-        # rospy.loginfo("Starting interface container: " + ic_name)
-        # interface_container.start()
         # launch_file = project_settings["launch_iface"]
         # launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns
         # ic_result = interface_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"",
         #                                          stdin=True, detach=True, tty=True)
 
-        # environment_containers.append(interface_container)
 
 def on_shutdown_call():
     print "shutdown call received! Trying to shutdown environment containers"
