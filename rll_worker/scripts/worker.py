@@ -97,6 +97,7 @@ def job_loop(jobs_collection, dClient, ns):
         sys.exit(1)
 
     get_client_log(job_id, client_container)
+    get_iface_log(job_id, iface_container)
     finish_container(client_container)
 
     jobs_collection.find_one_and_update({"_id": job_id},
@@ -161,7 +162,8 @@ def start_job(git_url, git_tag, username, job_id, project):
     launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
     rospy.loginfo("running launch command %s", launch_cmd)
     # PYTHONUNBUFFERED needs to be disabled to ensure that data is piped before the app finishes and when we are detached
-    client_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " &> /tmp/client.log\"",
+    # stdbuf -o0 does the same for C/C++ apps
+    client_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/client.log\"",
                               tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0",
                                                                   "ROS_MASTER_URI": "http://" + ic_name + ":11311"})
 
@@ -188,7 +190,7 @@ def get_exp_code(git_url, git_tag, username, job_id, project, container):
     with open(repo_archive_file, 'rb') as frp:
         container.start()
         # wait a moment to make sure that the container is started
-        rospy.sleep(0.2)
+        rospy.sleep(1)
         container.exec_run("mkdir " + ws_repo_path)
         container.put_archive(ws_repo_path, frp)
         rospy.loginfo("uploaded project to container")
@@ -234,6 +236,20 @@ def get_client_log(job_id, container):
                 return
             outfile.write(d)
 
+def get_iface_log(job_id, container):
+    log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
+    log_file = path.join(log_folder, "iface.log")
+
+    container.exec_run("cp /tmp/iface.log /tmp/iface.log.bak", user="root")
+    container.exec_run("chown root: /tmp/iface.log.bak", user="root")
+    strm, status = container.get_archive("/tmp/iface.log.bak")
+    with open(log_file, 'w') as outfile:
+        for d in strm:
+            outfile.write(d)
+
+    container.exec_run("rm /tmp/iface.log.bak", user="root")
+    container.exec_run("truncate -s 0 /tmp/iface.log")
+
 def write_logs(job_id, log_str, log_type):
     rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
 
@@ -270,20 +286,22 @@ def setup_environment_container(dClient):
 
         iface_container.reload()
         iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
-        
+        rospy.loginfo("iface container ip: " + iface_container_ip)
+
         # start ROS master
         iface_container.exec_run("bash -c \"source devel/setup.bash && roscore\"", tty=True, detach=True, environment={"ROS_HOSTNAME": ic_name})
 
-        # TODO: make this work
         # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
 
         launch_file = project_settings["launch_iface"]
         host_ip = rll_settings["host_ip"]
         launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns + " headless:=true"
         rospy.loginfo("running iface launch command %s", launch_cmd)
-        ic_result = iface_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " &> /tmp/iface.log\"",
+        ic_result = iface_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/iface.log\"",
                                              tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0", "ROS_IP": iface_container_ip,
                                                                                  "ROS_MASTER_URI": "http://" + host_ip + ":11311"})
+
+        return iface_container
 
 
 def on_shutdown_call():
@@ -331,7 +349,7 @@ if __name__ == '__main__':
     date = get_time_string()
     ic_name = "ic_" + date
     net_name = "testing" + date
-    setup_environment_container(dClient)
+    iface_container = setup_environment_container(dClient)
 
     while not rospy.is_shutdown():
         job_loop(jobs_collection, dClient, ns)
