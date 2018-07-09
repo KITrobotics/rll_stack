@@ -9,6 +9,8 @@ logs_save_dir: /home/rll/logs/test
 
 secret: SET_YOUR_SECRET_HERE
 
+sub_queue_limit: 5
+
 projects:
   - tower_of_hanoi
   - greetings
