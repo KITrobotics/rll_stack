@@ -1,4 +1,4 @@
-# environment to run the experiment's code
+# base image that includes the RLL SDK
 
 FROM osrf/ros:kinetic-desktop-full-xenial
 

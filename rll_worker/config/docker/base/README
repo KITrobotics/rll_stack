@@ -1,0 +1,4 @@
+Docker:
+
+build with "docker build --network host --build-arg ros_master_ip=127.0.0.1 -t rll-base ."
+run for testing with "docker run --net=host -it rll-base"

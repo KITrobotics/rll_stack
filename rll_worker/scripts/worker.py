@@ -126,9 +126,9 @@ def start_job(git_url, git_tag, username, job_id, project):
         #client container
         date = get_time_string()
         cc_name = "cc_" + date
-        # terminal command to remove all containers from image "rll_exp_env:v1":
-        # docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll_exp_env:v1 --format="{{.ID}}"))
-        client_container = create_container(cc_name, False)
+        # terminal command to remove all containers from image "rll-base":
+        # docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll-base --format="{{.ID}}"))
+        client_container = create_container(cc_name, "rll-base", False)
 
     except:
         rospy.logerr("failed to create container:\n%s", traceback.format_exc())
@@ -200,9 +200,9 @@ def get_exp_code(git_url, git_tag, username, job_id, project, container):
     return True
 
 
-def create_container(container_name, all_ports_open):
+def create_container(container_name, image_name, all_ports_open):
 
-    return dClient.containers.create("rll_exp_env:v1", network=net_name,
+    return dClient.containers.create(image_name, network=net_name,
                                      publish_all_ports=all_ports_open,
                                      detach=True, tty=True,
                                      nano_cpus=int(1e9), # limit to one CPU
@@ -262,21 +262,28 @@ def setup_environment_container(dClient):
 
         dClient.networks.create(net_name);
 
-        iface_container = create_container(ic_name, True)
+        iface_container = create_container(ic_name, project_name, True)
 
         iface_container.start()
         rospy.loginfo("Started interface container: " + ic_name)
         environment_containers.append(iface_container)
 
-        iface_container.exec_run("bash -c \"source devel/setup.bash && roscore\"", tty=True, detach=True, environment={"ROS_HOSTNAME": ic_name})
+        iface_container.reload()
+        iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
         
+        # start ROS master
+        iface_container.exec_run("bash -c \"source devel/setup.bash && roscore\"", tty=True, detach=True, environment={"ROS_HOSTNAME": ic_name})
+
         # TODO: make this work
         # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
 
-        # launch_file = project_settings["launch_iface"]
-        # launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns
-        # ic_result = interface_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + "\"",
-        #                                          stdin=True, detach=True, tty=True)
+        launch_file = project_settings["launch_iface"]
+        host_ip = rll_settings["host_ip"]
+        launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns + " headless:=true"
+        rospy.loginfo("running iface launch command %s", launch_cmd)
+        ic_result = iface_container.exec_run("bash -c \"source devel/setup.bash && " + launch_cmd + " &> /tmp/iface.log\"",
+                                             tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0", "ROS_IP": iface_container_ip,
+                                                                                 "ROS_MASTER_URI": "http://" + host_ip + ":11311"})
 
 
 def on_shutdown_call():
