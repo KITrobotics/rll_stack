@@ -34,9 +34,6 @@ import re
 from os import path, makedirs, remove
 from shutil import rmtree
 import sys
-import datetime
-import tarfile
-from StringIO import StringIO
 
 environment_containers = []
 
@@ -276,32 +273,32 @@ def job_result_codes_to_string(status):
 
 def setup_environment_container(dClient):
 
-        dClient.networks.create(net_name);
+    dClient.networks.create(net_name);
 
-        iface_container = create_container(ic_name, project_name, True)
+    iface_container = create_container(ic_name, project_name, True)
 
-        iface_container.start()
-        rospy.loginfo("Started interface container: " + ic_name)
-        environment_containers.append(iface_container)
+    iface_container.start()
+    rospy.loginfo("Started interface container: " + ic_name)
+    environment_containers.append(iface_container)
 
-        iface_container.reload()
-        iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
-        rospy.loginfo("iface container ip: " + iface_container_ip)
+    iface_container.reload()
+    iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
+    rospy.loginfo("iface container ip: " + iface_container_ip)
 
-        # start ROS master
-        iface_container.exec_run("bash -c \"source devel/setup.bash && roscore\"", tty=True, detach=True, environment={"ROS_HOSTNAME": ic_name})
+    # start ROS master
+    iface_container.exec_run("bash -c \"source devel/setup.bash && roscore\"", tty=True, detach=True, environment={"ROS_HOSTNAME": ic_name})
 
-        # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
+    # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
 
-        launch_file = project_settings["launch_iface"]
-        host_ip = rll_settings["host_ip"]
-        launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns + " headless:=true"
-        rospy.loginfo("running iface launch command %s", launch_cmd)
-        ic_result = iface_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/iface.log\"",
-                                             tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0", "ROS_IP": iface_container_ip,
-                                                                                 "ROS_MASTER_URI": "http://" + host_ip + ":11311"})
+    launch_file = project_settings["launch_iface"]
+    host_ip = rll_settings["host_ip"]
+    launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns + " headless:=true"
+    rospy.loginfo("running iface launch command %s", launch_cmd)
+    ic_result = iface_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/iface.log\"",
+                                         tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0", "ROS_IP": iface_container_ip,
+                                                                             "ROS_MASTER_URI": "http://" + host_ip + ":11311"})
 
-        return iface_container
+    return iface_container
 
 
 def on_shutdown_call():
@@ -310,9 +307,9 @@ def on_shutdown_call():
         finish_container(cont)
 
 def get_time_string():
-        cur_time = time.time()
-        value = datetime.datetime.fromtimestamp(cur_time)
-        return value.strftime('%d_%H-%M-%S')
+    cur_time = time.time()
+    value = datetime.datetime.fromtimestamp(cur_time)
+    return value.strftime('%d_%H-%M-%S')
 
 
 if __name__ == '__main__':
