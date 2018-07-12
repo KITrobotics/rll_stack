@@ -21,6 +21,13 @@ project_settings:
   rll_planning_project:
     launch_iface: planning_iface.launch
     launch_client: path_planner.launch
+    sync_services_to_client:
+        - move
+        - check_path
+    sync_actions_to_host:
+        - plan_to_goal
+    action_publisher:
+        plan_to_goal: path_planner
   greetings:
     launch_iface: move_iface.launch
     launch_client: move_sender.launch

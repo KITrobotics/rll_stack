@@ -96,6 +96,7 @@ def job_loop(jobs_collection, dClient, ns):
 
     get_client_log(job_id, client_container)
     get_iface_log(job_id, iface_container)
+    unregister_client()
     # finish_container(client_container)
 
     jobs_collection.find_one_and_update({"_id": job_id},
@@ -158,11 +159,15 @@ def start_job(git_url, git_tag, username, job_id, project):
 
     launch_file = project_settings["launch_client"]
     launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
+    client_container.reload()
+    client_container_ip = client_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
+
     rospy.loginfo("running launch command %s", launch_cmd)
     # PYTHONUNBUFFERED needs to be disabled to ensure that data is piped before the app finishes and when we are detached
     # stdbuf -o0 does the same for C/C++ apps
     client_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/client.log\"",
                               tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0",
+                                                                  "ROS_IP": client_container_ip,
                                                                   "ROS_MASTER_URI": "http://" + ic_name + ":11311"})
     # TODO: handle this better
     rospy.sleep(5)
@@ -308,6 +313,29 @@ def setup_environment_container(dClient):
 
     return iface_container
 
+def unregister_client():
+    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
+    iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
+    client_master_uri = "http://" + iface_container_ip + ":11311"
+    client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
+
+    for action_name in project_settings["sync_actions_to_host"]:
+        action_topics = []
+        try:
+            action_node = client_master.lookupNode(project_settings["action_publisher"][action_name])
+        except:
+            continue
+        action_topics.append(ns + action_name + "/cancel")
+        action_topics.append(ns + action_name + "/feedback")
+        action_topics.append(ns + action_name + "/goal")
+        action_topics.append(ns + action_name + "/result")
+        action_topics.append(ns + action_name + "/status")
+        for action_topic in action_topics:
+            host_master.unregisterPublisher(action_topic, action_node)
+            client_master.unregisterPublisher(action_topic, action_node)
+            rospy.loginfo("unregistered publisher %s from node uri %s", action_topic, action_node)
+
 def cleanup_host_master():
     host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
     host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
@@ -324,12 +352,11 @@ def cleanup_host_master():
 
 def sync_to_host_master():
     iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
-    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
     client_master_uri = "http://" + iface_container_ip + ":11311"
     client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
+    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
     anon_name = rosgraph.names.anonymous_name('master_sync')
     host_master = rosgraph.Master(anon_name, master_uri=host_master_uri)
-    fake_api = 'http://%s:0' % rll_settings["host_ip"]
 
     for action_name in project_settings["sync_actions_to_host"]:
         action_topics = []
@@ -419,5 +446,6 @@ if __name__ == '__main__':
     net_name = "testing" + date
     iface_container = setup_environment_container(dClient)
 
+    rospy.loginfo("ready to process jobs")
     while not rospy.is_shutdown():
         job_loop(jobs_collection, dClient, ns)
