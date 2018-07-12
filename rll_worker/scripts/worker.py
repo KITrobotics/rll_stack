@@ -20,6 +20,7 @@
 
 import rospy
 import rospkg
+import rosgraph
 import yaml
 from rll_msgs.srv import JobEnv
 from rll_msgs.msg import JobStatus
@@ -95,7 +96,7 @@ def job_loop(jobs_collection, dClient, ns):
 
     get_client_log(job_id, client_container)
     get_iface_log(job_id, iface_container)
-    finish_container(client_container)
+    # finish_container(client_container)
 
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": "finished",
@@ -103,7 +104,7 @@ def job_loop(jobs_collection, dClient, ns):
                                                   "job_result": job_result_codes_to_string(resp.job.status)}})
 
     if (resp.job.status == JobStatus.INTERNAL_ERROR):
-        rospy.logfatal("Internal error happened when running job environment, please investigate!")
+        rospy.logfatal("Internal error happened when running job environment, please investigate (job ID %s)!", job_id)
         sys.exit(1)
 
     # reset robot and environment
@@ -163,6 +164,10 @@ def start_job(git_url, git_tag, username, job_id, project):
     client_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/client.log\"",
                               tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0",
                                                                   "ROS_MASTER_URI": "http://" + ic_name + ":11311"})
+    # TODO: handle this better
+    rospy.sleep(5)
+    
+    sync_to_host_master()
 
     return True, client_container
 
@@ -272,7 +277,6 @@ def job_result_codes_to_string(status):
 
 
 def setup_environment_container(dClient):
-
     dClient.networks.create(net_name);
 
     iface_container = create_container(ic_name, project_name, True)
@@ -298,13 +302,78 @@ def setup_environment_container(dClient):
                                          tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0", "ROS_IP": iface_container_ip,
                                                                              "ROS_MASTER_URI": "http://" + host_ip + ":11311"})
 
+    rospy.loginfo("waiting for the client master and the iface to come up")
+    rospy.sleep(10)
+    sync_to_client_master(iface_container_ip)
+
     return iface_container
 
+def cleanup_host_master():
+    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
+
+    for srv_name in project_settings["sync_services_to_client"]:
+        srv_full_name = ns + srv_name
+        try:
+            srv_uri = host_master.lookupService(srv_full_name)
+            rospy.loginfo("cleaning up %s", srv_uri)
+            if srv_uri:
+                host_master.unregisterService(srv_full_name, srv_uri)
+        except:
+            pass
+
+def sync_to_host_master():
+    iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
+    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    client_master_uri = "http://" + iface_container_ip + ":11311"
+    client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
+    anon_name = rosgraph.names.anonymous_name('master_sync')
+    host_master = rosgraph.Master(anon_name, master_uri=host_master_uri)
+    fake_api = 'http://%s:0' % rll_settings["host_ip"]
+
+    for action_name in project_settings["sync_actions_to_host"]:
+        action_topics = []
+        action_node = client_master.lookupNode(project_settings["action_publisher"][action_name])
+        action_topics.append(ns + action_name + "/cancel")
+        action_topics.append(ns + action_name + "/feedback")
+        action_topics.append(ns + action_name + "/goal")
+        action_topics.append(ns + action_name + "/result")
+        action_topics.append(ns + action_name + "/status")
+        for action_topic in action_topics:
+            action_topic_type = []
+            for topic, topic_type in client_master.getTopicTypes():
+                if topic == action_topic:
+                    action_topic_type = topic_type
+            if not action_topic_type:
+                rospy.logerr("topic type for topic %s not found", action_topic)
+                return False
+            host_master.registerPublisher(action_topic, action_topic_type, action_node)
+            rospy.loginfo("registered publisher %s with type %s and node uri %s", action_topic, action_topic_type, action_node)
+    return True
+
+def sync_to_client_master(iface_container_ip):
+    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    client_master_uri = "http://" + iface_container_ip + ":11311"
+    client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
+    host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
+
+    for srv_name in project_settings["sync_services_to_client"]:
+        srv_full_name = ns + srv_name
+        srv_uri = host_master.lookupService(srv_full_name)
+        if not srv_uri:
+            rospy.logfatal(srv_name + " service not found")
+            sys.exit(1)
+        else:
+            fake_api = 'http://%s:0' % rll_settings["host_ip"]
+            rospy.loginfo("trying to sync srv %s with uri %s and fake api %s to client master %s",
+                          srv_name, srv_uri, fake_api, client_master_uri)
+            client_master.registerService(srv_name, srv_uri, fake_api)
 
 def on_shutdown_call():
-    print "shutdown call received! Trying to shutdown environment containers"
-    for cont in environment_containers:
-        finish_container(cont)
+    rospy.info("shutdown call received! Trying to shutdown environment containers")
+    # TODO: also remove Docker network here
+    # for cont in environment_containers:
+    #     finish_container(cont)
 
 def get_time_string():
     cur_time = time.time()
@@ -340,6 +409,8 @@ if __name__ == '__main__':
     jobs_collection = db_client[db_name].jobs
 
     job_idle = rospy.ServiceProxy("job_idle", JobEnv)
+
+    cleanup_host_master()
 
     dClient = docker.from_env()
     # TODO: us ns for naming this
