@@ -97,8 +97,9 @@ def job_loop(jobs_collection, dClient, ns):
 
     get_client_log(job_id, client_container)
     get_iface_log(job_id, iface_container)
+    # TODO: figure out whether we need this
     # unregister_client()
-    # finish_container(client_container)
+    finish_container(client_container)
 
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": "finished",
@@ -125,8 +126,7 @@ def job_loop(jobs_collection, dClient, ns):
 def start_job(git_url, git_tag, username, job_id, project):
     try:
         #client container
-        date = get_time_string()
-        cc_name = "cc_" + date
+        cc_name = "cc_" + ns.replace("/", "")
         # terminal command to remove all containers from image "rll-base":
         # docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll-base --format="{{.ID}}"))
         client_container = create_container(cc_name, "rll-base", False)
@@ -285,8 +285,6 @@ def job_result_codes_to_string(status):
 
 
 def setup_environment_container(dClient):
-    dClient.networks.create(net_name);
-
     iface_container = create_container(ic_name, project_name, True)
 
     iface_container.start()
@@ -364,7 +362,11 @@ def sync_to_host_master():
     for action_name in project_settings["sync_actions_to_host"]:
         action_topics_hp = []
         action_topics_cp = []
-        action_node = client_master.lookupNode(project_settings["action_publisher"][action_name])
+        try:
+            action_node = client_master.lookupNode(project_settings["action_publisher"][action_name])
+        except:
+            rospy.logerr("client node %s not online", project_settings["action_publisher"][action_name])
+            continue
         action_topics_hp.append(ns + action_name + "/cancel")
         action_topics_hp.append(ns + action_name + "/goal")
         action_topics_cp.append(ns + action_name + "/feedback")
@@ -416,14 +418,10 @@ def sync_to_client_master(iface_container_ip):
 
 def on_shutdown_call():
     rospy.loginfo("shutdown call received! Trying to shutdown environment containers")
-    # TODO: also remove Docker network here
-    # for cont in environment_containers:
-    #     finish_container(cont)
+    for cont in environment_containers:
+        finish_container(cont)
 
-def get_time_string():
-    cur_time = time.time()
-    value = datetime.datetime.fromtimestamp(cur_time)
-    return value.strftime('%d_%H-%M-%S')
+    docker_network.remove()
 
 def get_host_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -464,10 +462,9 @@ if __name__ == '__main__':
     cleanup_host_master()
 
     dClient = docker.from_env()
-    # TODO: us ns for naming this
-    date = get_time_string()
-    ic_name = "ic_" + date
-    net_name = "testing" + date
+    ic_name = "ic_" + ns.replace("/", "")
+    net_name = "bridge_" + ns.replace("/", "")
+    docker_network = dClient.networks.create(net_name)
     iface_container = setup_environment_container(dClient)
 
     rospy.loginfo("ready to process jobs")
