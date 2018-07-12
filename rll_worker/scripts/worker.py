@@ -303,7 +303,7 @@ def setup_environment_container(dClient):
     # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
 
     launch_file = project_settings["launch_iface"]
-    launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns + " headless:=true"
+    launch_cmd = "roslaunch --disable-title " + project_settings["iface_project"] + " " + launch_file + " robot:=" + ns + " headless:=true"
     rospy.loginfo("running iface launch command %s", launch_cmd)
     ic_result = iface_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/iface.log\"",
                                          tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0", "ROS_IP": iface_container_ip,
@@ -435,7 +435,6 @@ def get_host_ip():
 if __name__ == '__main__':
     rospy.init_node('job_worker')
 
-    # register shutdown call
     rospy.on_shutdown(on_shutdown_call)
 
     ns = rospy.get_namespace()

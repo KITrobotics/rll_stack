@@ -18,6 +18,7 @@ project_settings:
   rll_planning_project:
     launch_iface: planning_iface.launch
     launch_client: path_planner.launch
+    iface_project: rll_planning_project
     iface_node: planning_iface
     sync_services_to_client:
         - move
@@ -29,6 +30,23 @@ project_settings:
   greetings:
     launch_iface: move_iface.launch
     launch_client: move_sender.launch
+    iface_project: rll_move
+    iface_node: move_iface
+    sync_services_to_client:
+        - move_joints
+    sync_actions_to_host:
+        - move_client
+    action_publisher:
+        move_client: greetings
   tower_of_hanoi:
     launch_iface: move_iface.launch
     launch_client: move_sender.launch
+    iface_project: rll_move
+    iface_node: move_iface
+    sync_services_to_client:
+        - move_lin
+        - pick_place
+    sync_actions_to_host:
+        - move_client
+    action_publisher:
+        move_client: tower_hanoi
