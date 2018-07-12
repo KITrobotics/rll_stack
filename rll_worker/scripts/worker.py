@@ -35,6 +35,7 @@ import re
 from os import path, makedirs, remove
 from shutil import rmtree
 import sys
+import socket
 
 environment_containers = []
 
@@ -302,7 +303,6 @@ def setup_environment_container(dClient):
     # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
 
     launch_file = project_settings["launch_iface"]
-    host_ip = rll_settings["host_ip"]
     launch_cmd = "roslaunch --disable-title " + project_name + " " + launch_file + " robot:=" + ns + " headless:=true"
     rospy.loginfo("running iface launch command %s", launch_cmd)
     ic_result = iface_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/iface.log\"",
@@ -316,7 +316,7 @@ def setup_environment_container(dClient):
     return iface_container
 
 def unregister_client():
-    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    host_master_uri = "http://" + host_ip + ":11311"
     iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
     client_master_uri = "http://" + iface_container_ip + ":11311"
     client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
@@ -338,7 +338,7 @@ def unregister_client():
             rospy.loginfo("unregistered publisher %s from node uri %s", action_topic, action_node)
 
 def cleanup_host_master():
-    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    host_master_uri = "http://" + host_ip + ":11311"
     host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
 
     for srv_name in project_settings["sync_services_to_client"]:
@@ -357,7 +357,7 @@ def sync_to_host_master():
     client_master_uri = "http://" + iface_container_ip + ":11311"
     client_master = rosgraph.Master(anon_name_client, master_uri=client_master_uri)
     anon_name_host = rosgraph.names.anonymous_name('master_sync')
-    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    host_master_uri = "http://" + host_ip + ":11311"
     host_master = rosgraph.Master(anon_name_host, master_uri=host_master_uri)
     iface_node_uri = host_master.lookupNode(project_settings["iface_node"])
 
@@ -398,7 +398,7 @@ def sync_to_client_master(iface_container_ip):
     client_master_uri = "http://" + iface_container_ip + ":11311"
     anon_name_client = rosgraph.names.anonymous_name('master_sync')
     client_master = rosgraph.Master(anon_name_client, master_uri=client_master_uri)
-    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    host_master_uri = "http://" + host_ip + ":11311"
     anon_name_host = rosgraph.names.anonymous_name('master_sync')
     host_master = rosgraph.Master(anon_name_host, master_uri=host_master_uri)
 
@@ -409,7 +409,7 @@ def sync_to_client_master(iface_container_ip):
             rospy.logfatal(srv_name + " service not found")
             sys.exit(1)
         else:
-            fake_api = 'http://%s:0' % rll_settings["host_ip"]
+            fake_api = 'http://%s:0' % host_ip
             rospy.loginfo("trying to sync srv %s with uri %s and fake api %s to client master %s",
                           srv_name, srv_uri, fake_api, client_master_uri)
             client_master.registerService(srv_name, srv_uri, fake_api)
@@ -425,6 +425,12 @@ def get_time_string():
     value = datetime.datetime.fromtimestamp(cur_time)
     return value.strftime('%d_%H-%M-%S')
 
+def get_host_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    host_ip = s.getsockname()[0]
+    s.close
+    return host_ip
 
 if __name__ == '__main__':
     rospy.init_node('job_worker')
@@ -455,6 +461,7 @@ if __name__ == '__main__':
 
     job_idle = rospy.ServiceProxy("job_idle", JobEnv)
 
+    host_ip = get_host_ip()
     cleanup_host_master()
 
     dClient = docker.from_env()

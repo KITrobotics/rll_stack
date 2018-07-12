@@ -9,9 +9,6 @@ logs_save_dir: /home/rll/logs/test
 
 secret: SET_YOUR_SECRET_HERE
 
-# IP address of the host running the workers
-host_ip: SET_YOUR_IP_HERE
-
 projects:
   - tower_of_hanoi
   - greetings
