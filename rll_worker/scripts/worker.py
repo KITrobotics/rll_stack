@@ -285,7 +285,7 @@ def job_result_codes_to_string(status):
 
 
 def setup_environment_container(dClient):
-    iface_container = create_container(ic_name, project_name, True)
+    iface_container = create_container(ic_name, project_settings["iface_docker_image"], True)
 
     iface_container.start()
     rospy.loginfo("Started interface container: " + ic_name)

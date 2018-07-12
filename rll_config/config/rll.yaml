@@ -16,8 +16,9 @@ projects:
 
 project_settings:
   rll_planning_project:
-    launch_iface: planning_iface.launch
     launch_client: path_planner.launch
+    launch_iface: planning_iface.launch
+    iface_docker_image: rll-planning-project
     iface_project: rll_planning_project
     iface_node: planning_iface
     sync_services_to_client:
@@ -28,9 +29,10 @@ project_settings:
     action_publisher:
         plan_to_goal: path_planner
   greetings:
-    launch_iface: move_iface.launch
     launch_client: move_sender.launch
-    iface_project: rll_move
+    launch_iface: move_iface.launch
+    iface_docker_image: rll-base-real
+    iface_project: rll_move_real
     iface_node: move_iface
     sync_services_to_client:
         - move_joints
@@ -39,9 +41,10 @@ project_settings:
     action_publisher:
         move_client: greetings
   tower_of_hanoi:
-    launch_iface: move_iface.launch
     launch_client: move_sender.launch
-    iface_project: rll_move
+    launch_iface: move_iface.launch
+    iface_docker_image: rll-base-real
+    iface_project: rll_move_real
     iface_node: move_iface
     sync_services_to_client:
         - move_lin
