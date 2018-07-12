@@ -96,7 +96,7 @@ def job_loop(jobs_collection, dClient, ns):
 
     get_client_log(job_id, client_container)
     get_iface_log(job_id, iface_container)
-    unregister_client()
+    # unregister_client()
     # finish_container(client_container)
 
     jobs_collection.find_one_and_update({"_id": job_id},
@@ -173,6 +173,8 @@ def start_job(git_url, git_tag, username, job_id, project):
     rospy.sleep(5)
     
     sync_to_host_master()
+    # TODO: handle this better
+    rospy.sleep(5)
 
     return True, client_container
 
@@ -315,7 +317,6 @@ def setup_environment_container(dClient):
 
 def unregister_client():
     host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
-    host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
     iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
     client_master_uri = "http://" + iface_container_ip + ":11311"
     client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
@@ -352,21 +353,24 @@ def cleanup_host_master():
 
 def sync_to_host_master():
     iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
+    anon_name_client = rosgraph.names.anonymous_name('master_sync')
     client_master_uri = "http://" + iface_container_ip + ":11311"
-    client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
+    client_master = rosgraph.Master(anon_name_client, master_uri=client_master_uri)
+    anon_name_host = rosgraph.names.anonymous_name('master_sync')
     host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
-    anon_name = rosgraph.names.anonymous_name('master_sync')
-    host_master = rosgraph.Master(anon_name, master_uri=host_master_uri)
+    host_master = rosgraph.Master(anon_name_host, master_uri=host_master_uri)
+    iface_node_uri = host_master.lookupNode(project_settings["iface_node"])
 
     for action_name in project_settings["sync_actions_to_host"]:
-        action_topics = []
+        action_topics_hp = []
+        action_topics_cp = []
         action_node = client_master.lookupNode(project_settings["action_publisher"][action_name])
-        action_topics.append(ns + action_name + "/cancel")
-        action_topics.append(ns + action_name + "/feedback")
-        action_topics.append(ns + action_name + "/goal")
-        action_topics.append(ns + action_name + "/result")
-        action_topics.append(ns + action_name + "/status")
-        for action_topic in action_topics:
+        action_topics_hp.append(ns + action_name + "/cancel")
+        action_topics_hp.append(ns + action_name + "/goal")
+        action_topics_cp.append(ns + action_name + "/feedback")
+        action_topics_cp.append(ns + action_name + "/result")
+        action_topics_cp.append(ns + action_name + "/status")
+        for action_topic in action_topics_cp:
             action_topic_type = []
             for topic, topic_type in client_master.getTopicTypes():
                 if topic == action_topic:
@@ -375,14 +379,28 @@ def sync_to_host_master():
                 rospy.logerr("topic type for topic %s not found", action_topic)
                 return False
             host_master.registerPublisher(action_topic, action_topic_type, action_node)
-            rospy.loginfo("registered publisher %s with type %s and node uri %s", action_topic, action_topic_type, action_node)
+            client_master.registerSubscriber(action_topic, action_topic_type, iface_node_uri)
+            rospy.loginfo("registered client publisher %s with type %s and node uri %s", action_topic, action_topic_type, action_node)
+        for action_topic in action_topics_hp:
+            action_topic_type = []
+            for topic, topic_type in client_master.getTopicTypes():
+                if topic == action_topic:
+                    action_topic_type = topic_type
+            if not action_topic_type:
+                rospy.logerr("topic type for topic %s not found", action_topic)
+                return False
+            host_master.registerSubscriber(action_topic, action_topic_type, action_node)
+            client_master.registerPublisher(action_topic, action_topic_type, iface_node_uri)
+            rospy.loginfo("registered host publisher %s with type %s and node uri %s", action_topic, action_topic_type, iface_node_uri)
     return True
 
 def sync_to_client_master(iface_container_ip):
-    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
     client_master_uri = "http://" + iface_container_ip + ":11311"
-    client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
-    host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
+    anon_name_client = rosgraph.names.anonymous_name('master_sync')
+    client_master = rosgraph.Master(anon_name_client, master_uri=client_master_uri)
+    host_master_uri = "http://" + rll_settings["host_ip"] + ":11311"
+    anon_name_host = rosgraph.names.anonymous_name('master_sync')
+    host_master = rosgraph.Master(anon_name_host, master_uri=host_master_uri)
 
     for srv_name in project_settings["sync_services_to_client"]:
         srv_full_name = ns + srv_name
@@ -397,7 +415,7 @@ def sync_to_client_master(iface_container_ip):
             client_master.registerService(srv_name, srv_uri, fake_api)
 
 def on_shutdown_call():
-    rospy.info("shutdown call received! Trying to shutdown environment containers")
+    rospy.loginfo("shutdown call received! Trying to shutdown environment containers")
     # TODO: also remove Docker network here
     # for cont in environment_containers:
     #     finish_container(cont)
