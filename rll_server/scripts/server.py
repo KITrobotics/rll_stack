@@ -185,8 +185,8 @@ class JobsHandler(tornado.web.RequestHandler):
         if error:
             result = {"status": "error", "error": "No finished job with this ID"}
         else:
-            # TODO: also return build log
-            result = {"status": "success", "log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/launch.log"}
+            # TODO: also return the other log files
+            result = {"status": "success", "log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/client.log"}
 
         self.write(json_encode(result))
         self.finish()
