@@ -21,6 +21,7 @@ project_settings:
   rll_planning_project:
     launch_iface: planning_iface.launch
     launch_client: path_planner.launch
+    iface_node: planning_iface
     sync_services_to_client:
         - move
         - check_path
