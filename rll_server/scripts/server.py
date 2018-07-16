@@ -83,7 +83,7 @@ class JobsHandler(tornado.web.RequestHandler):
         try:
             job_obj_id = ObjectId(job_id)
         except:
-            raise tornado.web.HTTPError(400)
+            raise tornado.web.HTTPError(400)#Be more exact about error?
 
         self.jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_status_cb)
 
@@ -285,7 +285,7 @@ class JobsHandler(tornado.web.RequestHandler):
             rospy.loginfo("Length of submission queue is %d. Max is %d"%(submission_count,max_sub_queue))
             
             #Then check if user has running job
-            future_run_job = self.jobs_collection.find_one({"status":"running","username":self.get_argument("username")})
+            future_run_job = self.jobs_collection.find_one({"status":"running","project":project,"username":self.get_argument("username")})
             job = yield future_run_job
             if not job == None:
                 rospy.loginfo("Found running job for user.")
@@ -296,7 +296,7 @@ class JobsHandler(tornado.web.RequestHandler):
             rospy.loginfo("Found no running job for user.")
             
             #Check for existing submission
-            future_existing_sub = self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username")})
+            future_existing_sub = self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project":self.get_argument("project")})
             result = yield future_existing_sub
             if result:
                 #Submission found: Update it
