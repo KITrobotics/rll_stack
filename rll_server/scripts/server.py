@@ -172,8 +172,7 @@ class JobsHandler(tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def _db_job_status_cb(self, job, error):
         rospy.loginfo("job status db callback with job %s and error %s", job, error)
-
-        if error:
+        if error or not job:
             result = {"status": "error", "error": "No job with this ID"}
         else:
             future = self.jobs_collection.find({"status":"submitted","created": {"$lte":job["created"]}}).count()
@@ -181,12 +180,11 @@ class JobsHandler(tornado.web.RequestHandler):
                 position = yield future
                 result = self._build_status_resp(job)
                 result["position"] = position
-
-                self.write(json_encode(result))
-                self.finish()
             except Exception, e:
                 raise tornado.web.HTTPError(500, e)
 
+        self.write(json_encode(result))
+        self.finish()
 
     def _db_job_logs_cb(self, job, error):
         rospy.loginfo("job log db callback with job %s and error %s", job, error)
