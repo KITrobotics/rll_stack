@@ -234,7 +234,7 @@ class JobsHandler(tornado.web.RequestHandler):
                        "/iiwa_2/": self.rll_settings["cams_base_url"] + "/stream2/mjpg/video.mjpg"}
         return cam_mapping.get(ns, "unknown")
     
-                
+    @tornado.gen.coroutine            
     def _update_submission(self,result,error):
         
         if error:
@@ -246,27 +246,18 @@ class JobsHandler(tornado.web.RequestHandler):
             if result.matched_count and not result.modified_count:
                 #Job was found, but nothing modified
                 result = {"status": "error", "error": "Nothing was modified"}
-                self.write(json_encode(result))
-                self.finish()
             elif result.matched_count and result.modified_count:
                 #Job was found and updated
-                self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project": self.get_argument("project")},callback=self._sent_result)
+                #self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project": self.get_argument("project")},callback=self._sent_result)
+                future = self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project": self.get_argument("project")})
+                res = yield future
+                result = {"status": "success", "job_id": str(res["_id"])} #Set new flag for stating modified?
             else:
                  raise tornado.web.HTTPError(500, "Unexpected Error")
-
-                
-           
-    def _sent_result(self,result,error):
-        if error:
-            rospy.loginfo(error)
-            raise tornado.web.HTTPError(500, error)
-        elif result:
-            rospy.loginfo(result)
-            result = {"status": "success", "job_id": str(result["_id"])} #Set new flag for stating modified?
+            
             self.write(json_encode(result))
             self.finish()
-        else:
-            raise tornado.web.HTTPError(500, "Unexpected error")
+
         
     @tornado.gen.coroutine
     def handle_new_submission(self,username,project,git_url,git_tag):
