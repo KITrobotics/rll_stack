@@ -22,8 +22,8 @@ import rospy
 import rospkg
 import rosgraph
 import yaml
-from rll_msgs.srv import JobEnv
-from rll_msgs.msg import JobStatus
+import actionlib
+from rll_msgs.msg import *
 
 import docker
 import pymongo
@@ -68,37 +68,33 @@ def job_loop(jobs_collection, dClient, ns):
         rospy.loginfo("starting job failed, returning")
         return
 
-    rospy.loginfo("running job env");
-    try:
-        rospy.wait_for_service("job_env", timeout=2.0)
-    except:
+    available = job_env.wait_for_server(rospy.Duration.from_sec(2.0))
+    if not available:
         # reset the job and run it later again
         # TODO: be more transparent about this by using a different status code
         jobs_collection.find_one_and_update({"_id": job_id},
                                             {"$set": {"status": "submitted",
                                                       "job_end": datetime.datetime.now(),
                                                       "job_result": "job env not available"}})
-        rospy.logfatal("Job env service is not available, please investigate!")
+        rospy.logfatal("Job env action server is not available, please investigate!")
         sys.exit(1)
 
-    try:
-        job_env = rospy.ServiceProxy('job_env', JobEnv)
-        resp = job_env(True)
-        rospy.loginfo("successfully run job environment with job status %s", job_result_codes_to_string(resp.job.status))
-    except rospy.ServiceException, e:
-        rospy.logfatal("service call failed: %s, please investigate!", e)
-        # reset the job and run it later again
-        # TODO: be more transparent about this by using a different status code
-        jobs_collection.find_one_and_update({"_id": job_id},
-                                            {"$set": {"status": "submitted",
-                                                      "job_end": datetime.datetime.now(),
-                                                      "job_result": "job env not available"}})
-        sys.exit(1)
+    job_env_goal = JobEnvGoal()
+    job_env.send_goal(job_env_goal)
+    rospy.loginfo("running job env")
+
+    # TODO: handle this better
+    rospy.sleep(0.5)
+    sync_to_host_master()
+
+    # TODO: have a timeout here and maybe request feedback
+    job_env.wait_for_result()
+    resp = job_env.get_result()
+    rospy.loginfo("successfully run job environment with job status %s\n", job_result_codes_to_string(resp.job.status))
 
     get_client_log(job_id, client_container)
     get_iface_log(job_id, iface_container)
-    # TODO: figure out whether we need this
-    # unregister_client()
+    unregister_client()
     finish_container(client_container)
 
     jobs_collection.find_one_and_update({"_id": job_id},
@@ -111,16 +107,15 @@ def job_loop(jobs_collection, dClient, ns):
         sys.exit(1)
 
     # reset robot and environment
-    try:
-        resp = job_idle(True)
-    except rospy.ServiceException, e:
-        rospy.loginfo("idle service call failed: %s", e)
-
+    job_idle_goal = JobEnvGoal()
+    job_idle.send_goal(job_idle_goal)
+    job_idle.wait_for_result()
+    resp = job_idle.get_result()
     if (resp.job.status == JobStatus.INTERNAL_ERROR):
         rospy.logfatal("Internal error happened when running idle service, please investigate!")
         sys.exit(1)
 
-    rospy.loginfo("finished job with id '%s' in namespace '%s'", job_id, ns)
+    rospy.loginfo("finished job with id '%s' in namespace '%s'\n", job_id, ns)
 
 
 def start_job(git_url, git_tag, username, job_id, project):
@@ -132,18 +127,19 @@ def start_job(git_url, git_tag, username, job_id, project):
         client_container = create_container(cc_name, "rll-base", False)
 
     except:
-        rospy.logerr("failed to create container:\n%s", traceback.format_exc())
+        rospy.logfatal("failed to create container:\n%s", traceback.format_exc())
         # reset job for rerun
         jobs_collection.find_one_and_update({"_id": job_id},
                                             {"$set": {"status": "submitted",
                                                       "job_end": datetime.datetime.now(),
                                                       "job_result": "creating container failed"}})
-        return False
+
+        sys.exit(1)
 
     # TODO: handle clone failures
     success = get_exp_code(git_url, git_tag, username, job_id, project, client_container)
     if not success:
-        return False
+        return False, client_container
 
     rospy.loginfo("building project")
     cmd_result = client_container.exec_run("catkin build --no-status", stdin=True, tty=True)
@@ -156,7 +152,7 @@ def start_job(git_url, git_tag, username, job_id, project):
                                                       "job_end": datetime.datetime.now(),
                                                       "job_result": "building project failed"}})
         finish_container(client_container)
-        return False;
+        return False, client_container
 
     launch_file = project_settings["launch_client"]
     launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
@@ -170,12 +166,9 @@ def start_job(git_url, git_tag, username, job_id, project):
                               tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0",
                                                                   "ROS_IP": client_container_ip,
                                                                   "ROS_MASTER_URI": "http://" + ic_name + ":11311"})
-    # TODO: handle this better
-    rospy.sleep(5)
-    
-    sync_to_host_master()
-    # TODO: handle this better
-    rospy.sleep(5)
+    # giving the client a little time to start
+    # TODO: handle this better with syncing between masters
+    rospy.sleep(2)
 
     return True, client_container
 
@@ -313,8 +306,10 @@ def setup_environment_container(dClient):
 
     return iface_container
 
+# TODO: doesn't work, for unregistering, the same anon name is needed as for registration
 def unregister_client():
     host_master_uri = "http://" + host_ip + ":11311"
+    host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
     iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
     client_master_uri = "http://" + iface_container_ip + ":11311"
     client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
@@ -331,9 +326,12 @@ def unregister_client():
         action_topics.append(ns + action_name + "/result")
         action_topics.append(ns + action_name + "/status")
         for action_topic in action_topics:
-            host_master.unregisterPublisher(action_topic, action_node)
-            client_master.unregisterPublisher(action_topic, action_node)
-            rospy.loginfo("unregistered publisher %s from node uri %s", action_topic, action_node)
+            num_host_pub = host_master.unregisterPublisher(action_topic, action_node)
+            num_host_sub = host_master.unregisterSubscriber(action_topic, action_node)
+            num_client_pub = client_master.unregisterPublisher(action_topic, action_node)
+            num_client_sub = client_master.unregisterSubscriber(action_topic, action_node)
+            rospy.loginfo("num_host_pub %d num_host_sub %d num_client_pub %d num_client_sub %d", num_host_pub, num_host_sub, num_client_pub, num_client_sub)
+            rospy.loginfo("unregistered publisher %s with node uri %s", action_topic, action_node)
 
 def cleanup_host_master():
     host_master_uri = "http://" + host_ip + ":11311"
@@ -456,8 +454,6 @@ if __name__ == '__main__':
     db_client = pymongo.MongoClient()
     jobs_collection = db_client[db_name].jobs
 
-    job_idle = rospy.ServiceProxy("job_idle", JobEnv)
-
     host_ip = get_host_ip()
     cleanup_host_master()
 
@@ -466,6 +462,9 @@ if __name__ == '__main__':
     net_name = "bridge_" + ns.replace("/", "")
     docker_network = dClient.networks.create(net_name)
     iface_container = setup_environment_container(dClient)
+
+    job_env = actionlib.SimpleActionClient('job_env', JobEnvAction)
+    job_idle = actionlib.SimpleActionClient('job_idle', JobEnvAction)
 
     rospy.loginfo("ready to process jobs")
     while not rospy.is_shutdown():

@@ -31,7 +31,7 @@ project_settings:
   greetings:
     launch_client: move_sender.launch
     launch_iface: move_iface.launch
-    iface_docker_image: rll-base-real
+    iface_docker_image: rll-base
     iface_project: rll_move_real
     iface_node: move_iface
     sync_services_to_client:
@@ -43,7 +43,7 @@ project_settings:
   tower_of_hanoi:
     launch_client: move_sender.launch
     launch_iface: move_iface.launch
-    iface_docker_image: rll-base-real
+    iface_docker_image: rll-base
     iface_project: rll_move_real
     iface_node: move_iface
     sync_services_to_client:
