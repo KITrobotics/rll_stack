@@ -15,6 +15,7 @@ projects:
   - tower_of_hanoi
   - greetings
   - rll_planning_project
+  - test_projects
 
 project_settings:
   rll_planning_project:
@@ -26,3 +27,7 @@ project_settings:
   tower_of_hanoi:
     launch_iface: move_iface.launch
     launch_client: move_sender.launch
+  test_projects:
+    launch_iface: move_iface.launch
+    launch_client: move_sender.launch
+
