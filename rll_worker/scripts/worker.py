@@ -38,6 +38,7 @@ import sys
 import socket
 
 environment_containers = []
+topic_sync_names = {}
 
 def job_loop(jobs_collection, dClient, ns):
     # rospy.loginfo("searching for new job in namespace '%s'", ns)
@@ -306,13 +307,12 @@ def setup_environment_container(dClient):
 
     return iface_container
 
-# TODO: doesn't work, for unregistering, the same anon name is needed as for registration
 def unregister_client():
     host_master_uri = "http://" + host_ip + ":11311"
-    host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
+    host_master = rosgraph.Master(topic_sync_names["host"], master_uri=host_master_uri)
     iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
     client_master_uri = "http://" + iface_container_ip + ":11311"
-    client_master = rosgraph.Master(rospy.get_name(), master_uri=client_master_uri)
+    client_master = rosgraph.Master(topic_sync_names["client"], master_uri=client_master_uri)
 
     for action_name in project_settings["sync_actions_to_host"]:
         action_topics = []
@@ -330,8 +330,8 @@ def unregister_client():
             num_host_sub = host_master.unregisterSubscriber(action_topic, action_node)
             num_client_pub = client_master.unregisterPublisher(action_topic, action_node)
             num_client_sub = client_master.unregisterSubscriber(action_topic, action_node)
-            rospy.loginfo("num_host_pub %d num_host_sub %d num_client_pub %d num_client_sub %d", num_host_pub, num_host_sub, num_client_pub, num_client_sub)
-            rospy.loginfo("unregistered publisher %s with node uri %s", action_topic, action_node)
+            # rospy.loginfo("num_host_pub %d num_host_sub %d num_client_pub %d num_client_sub %d", num_host_pub, num_host_sub, num_client_pub, num_client_sub)
+            # rospy.loginfo("unregistered publisher %s with node uri %s", action_topic, action_node)
 
 def cleanup_host_master():
     host_master_uri = "http://" + host_ip + ":11311"
@@ -349,12 +349,12 @@ def cleanup_host_master():
 
 def sync_to_host_master():
     iface_container_ip = iface_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
-    anon_name_client = rosgraph.names.anonymous_name('master_sync')
+    topic_sync_names["client"] = rosgraph.names.anonymous_name('master_sync')
     client_master_uri = "http://" + iface_container_ip + ":11311"
-    client_master = rosgraph.Master(anon_name_client, master_uri=client_master_uri)
-    anon_name_host = rosgraph.names.anonymous_name('master_sync')
+    client_master = rosgraph.Master(topic_sync_names["client"], master_uri=client_master_uri)
+    topic_sync_names["host"] = rosgraph.names.anonymous_name('master_sync')
     host_master_uri = "http://" + host_ip + ":11311"
-    host_master = rosgraph.Master(anon_name_host, master_uri=host_master_uri)
+    host_master = rosgraph.Master(topic_sync_names["host"], master_uri=host_master_uri)
     iface_node_uri = host_master.lookupNode(project_settings["iface_node"])
 
     for action_name in project_settings["sync_actions_to_host"]:
@@ -380,7 +380,7 @@ def sync_to_host_master():
                 return False
             host_master.registerPublisher(action_topic, action_topic_type, action_node)
             client_master.registerSubscriber(action_topic, action_topic_type, iface_node_uri)
-            rospy.loginfo("registered client publisher %s with type %s and node uri %s", action_topic, action_topic_type, action_node)
+            # rospy.loginfo("registered client publisher %s with type %s and node uri %s", action_topic, action_topic_type, action_node)
         for action_topic in action_topics_hp:
             action_topic_type = []
             for topic, topic_type in client_master.getTopicTypes():
@@ -391,7 +391,7 @@ def sync_to_host_master():
                 return False
             host_master.registerSubscriber(action_topic, action_topic_type, action_node)
             client_master.registerPublisher(action_topic, action_topic_type, iface_node_uri)
-            rospy.loginfo("registered host publisher %s with type %s and node uri %s", action_topic, action_topic_type, iface_node_uri)
+            # rospy.loginfo("registered host publisher %s with type %s and node uri %s", action_topic, action_topic_type, iface_node_uri)
     return True
 
 def sync_to_client_master(iface_container_ip):
