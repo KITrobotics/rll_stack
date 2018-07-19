@@ -32,7 +32,7 @@ project_settings:
     launch_client: move_sender.launch
     launch_iface: move_iface.launch
     iface_docker_image: rll-base
-    iface_project: rll_move_real
+    iface_project: rll_move
     iface_node: move_iface
     sync_services_to_client:
         - move_joints
@@ -44,7 +44,7 @@ project_settings:
     launch_client: move_sender.launch
     launch_iface: move_iface.launch
     iface_docker_image: rll-base
-    iface_project: rll_move_real
+    iface_project: rll_move
     iface_node: move_iface
     sync_services_to_client:
         - move_lin

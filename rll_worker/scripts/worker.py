@@ -404,9 +404,10 @@ def sync_to_client_master(iface_container_ip):
 
     for srv_name in project_settings["sync_services_to_client"]:
         srv_full_name = ns + srv_name
-        srv_uri = host_master.lookupService(srv_full_name)
-        if not srv_uri:
-            rospy.logfatal(srv_name + " service not found")
+        try:
+            srv_uri = host_master.lookupService(srv_full_name)
+        except:
+            rospy.logfatal(srv_full_name + " service not found")
             sys.exit(1)
         else:
             fake_api = 'http://%s:0' % host_ip
