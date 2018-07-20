@@ -9,10 +9,13 @@ logs_save_dir: /home/rll/logs/test
 
 secret: SET_YOUR_SECRET_HERE
 
+sub_queue_limit: 70
+
 projects:
   - tower_of_hanoi
   - greetings
   - rll_planning_project
+  - test_projects
 
 project_settings:
   rll_planning_project:
@@ -42,6 +45,7 @@ project_settings:
         move_client: greetings
   tower_of_hanoi:
     launch_client: move_sender.launch
+  tower_of_hanoi:
     launch_iface: move_iface.launch
     iface_docker_image: rll-base
     iface_project: rll_move

@@ -24,7 +24,9 @@ import yaml
 
 import tornado.ioloop
 import tornado.web
+import tornado.gen
 from tornado.escape import json_encode
+
 import motor.motor_tornado
 from bson.objectid import ObjectId
 
@@ -81,7 +83,7 @@ class JobsHandler(tornado.web.RequestHandler):
         try:
             job_obj_id = ObjectId(job_id)
         except:
-            raise tornado.web.HTTPError(400)
+            raise tornado.web.HTTPError(400)#Be more exact about error?
 
         self.jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_status_cb)
 
@@ -123,16 +125,14 @@ class JobsHandler(tornado.web.RequestHandler):
         rospy.loginfo("got a new submission with username '%s', Git repo URL '%s' and tag '%s' for project '%s'",
                       username, git_url, git_tag, project)
 
-        # check if there is already a job in the queue for this user
-        # TODO: try to solve this with indexing
-        self.jobs_collection.find_one({"username": username, "project": project,
-                                       "status": {"$in": ["submitted", "running"]}},
-                                 callback=self._db_open_job_cb)
+        self.handle_new_submission(username,project,git_url,git_tag)
+        
 
     def _db_open_job_cb(self, job, error):
         rospy.loginfo("db open job callback with job %s and error %s", job, error)
 
         if error:
+            rospy.loginfo(error)
             raise tornado.web.HTTPError(500, error)
         elif not job == None:
             response = {"status": "error", "error": "User has a job in the queue"}
@@ -169,13 +169,19 @@ class JobsHandler(tornado.web.RequestHandler):
 
         return True
 
+    @tornado.gen.coroutine
     def _db_job_status_cb(self, job, error):
         rospy.loginfo("job status db callback with job %s and error %s", job, error)
-
-        if error:
+        if error or not job:
             result = {"status": "error", "error": "No job with this ID"}
         else:
-            result = self._build_status_resp(job)
+            future = self.jobs_collection.find({"status":"submitted","created": {"$lte":job["created"]}}).count()
+            try:
+                position = yield future
+                result = self._build_status_resp(job)
+                result["position"] = position
+            except Exception, e:
+                raise tornado.web.HTTPError(500, e)
 
         self.write(json_encode(result))
         self.finish()
@@ -190,6 +196,17 @@ class JobsHandler(tornado.web.RequestHandler):
 
         self.write(json_encode(result))
         self.finish()
+        
+    def _add_job_position(self,result,error):
+        rospy.loginfo("_add_job_position callback with resutl %s and error %s", result, error)
+
+        if error:
+            raise tornado.web.HTTPError(500, error)
+        else:
+            rospy.loginfo(result)
+            result = {"status": "success", "job_id": str(result.inserted_id),"position":str(result)}
+            self.write(json_encode(result))
+            self.finish()
 
     def _build_status_resp(self, job):
         job_status = job["status"]
@@ -216,6 +233,79 @@ class JobsHandler(tornado.web.RequestHandler):
         cam_mapping = {"/iiwa_1/": self.rll_settings["cams_base_url"] + "/stream1/mjpg/video.mjpg",
                        "/iiwa_2/": self.rll_settings["cams_base_url"] + "/stream2/mjpg/video.mjpg"}
         return cam_mapping.get(ns, "unknown")
+    
+    @tornado.gen.coroutine            
+    def _update_submission(self,result,error):
+        
+        if error:
+            rospy.loginfo(error)
+            raise tornado.web.HTTPError(500, error)
+        else:
+            rospy.loginfo("Update submission performed:\n Matched: %d, Modified: %d\n Raw: %s"%(result.matched_count, result.modified_count,result.raw_result))
+            #see: http://api.mongodb.com/python/3.6.1/api/pymongo/results.html#pymongo.results.UpdateResult
+            if result.matched_count and not result.modified_count:
+                #Job was found, but nothing modified
+                result = {"status": "error", "error": "Nothing was modified"}
+            elif result.matched_count and result.modified_count:
+                #Job was found and updated
+                #self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project": self.get_argument("project")},callback=self._sent_result)
+                future = self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project": self.get_argument("project")})
+                res = yield future
+                result = {"status": "success", "job_id": str(res["_id"])} #Set new flag for stating modified?
+            else:
+                 raise tornado.web.HTTPError(500, "Unexpected Error")
+            
+            self.write(json_encode(result))
+            self.finish()
+
+        
+    @tornado.gen.coroutine
+    def handle_new_submission(self,username,project,git_url,git_tag):
+        try:
+            #Check if max que is reached
+            future = self.jobs_collection.find({"status":"submitted"}).count()
+            submission_count = yield future
+            max_sub_queue = rll_settings["sub_queue_limit"]
+            if submission_count>max_sub_queue:
+                response = {"status": "error", "error": "Max number of submission in queue is reached."}
+                self.write(json_encode(response))
+                self.finish()
+                return
+            rospy.loginfo("Length of submission queue is %d. Max is %d"%(submission_count,max_sub_queue))
+            
+            #Then check if user has running job
+            future_run_job = self.jobs_collection.find_one({"status":"running","project":project,"username":self.get_argument("username")})
+            job = yield future_run_job
+            if not job == None:
+                rospy.loginfo("Found running job for user.")
+                response = {"status": "error", "error": "User has a running job in the queue"}
+                self.write(json_encode(response))
+                self.finish()
+                return
+            rospy.loginfo("Found no running job for user.")
+            
+            #Check for existing submission
+            future_existing_sub = self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project":self.get_argument("project")})
+            result = yield future_existing_sub
+            if result:
+                #Submission found: Update it
+                self.jobs_collection.update_one({"username": self.get_argument("username"), "project": self.get_argument("project"),"status": "submitted"},update={ "$set": { "git_tag": self.get_argument("git_tag") } },callback=self._update_submission,upsert=False)
+            else:
+                #No submission for user and project found, create new one
+                git_url = self.get_argument("git_url")
+                git_tag = self.get_argument("git_tag")
+                if not self._valid_git_url(git_url, git_tag):
+                    return
+
+                username = self.get_argument("username")
+                project = self.get_argument("project")
+                new_job = {"username": username, "project": project, "git_url": git_url, "git_tag": git_tag,
+                "status": "submitted", "created": datetime.datetime.now()}
+                self.jobs_collection.insert_one(new_job, callback=self._db_job_insert_cb)
+        
+        except Exception, e:
+                 raise tornado.web.HTTPError(500,e)
+        
 
 if __name__ == '__main__':
     rospy.init_node('rll_server')
