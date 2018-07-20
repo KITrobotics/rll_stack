@@ -45,7 +45,6 @@ project_settings:
         move_client: greetings
   tower_of_hanoi:
     launch_client: move_sender.launch
-  tower_of_hanoi:
     launch_iface: move_iface.launch
     iface_docker_image: rll-base
     iface_project: rll_move
@@ -57,3 +56,17 @@ project_settings:
         - move_client
     action_publisher:
         move_client: tower_hanoi
+  test_projects:
+    launch_client: move_sender.launch
+    launch_iface: move_iface.launch
+    iface_docker_image: rll-base
+    iface_project: rll_move
+    iface_node: move_iface
+    sync_services_to_client:
+        - move_lin
+        - pick_place
+        - move_joints
+    sync_actions_to_host:
+        - move_client
+    action_publisher:
+        move_client: test_project
