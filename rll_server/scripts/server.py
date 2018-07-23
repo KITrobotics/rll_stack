@@ -26,7 +26,6 @@ import tornado.ioloop
 import tornado.web
 import tornado.gen
 from tornado.escape import json_encode
-
 import motor.motor_tornado
 from bson.objectid import ObjectId
 
@@ -61,8 +60,8 @@ class JobsHandler(tornado.web.RequestHandler):
 
         if operation == "status":
             self._handle_job_status()
-        elif operation == "logs":
-            self._handle_logs_req()
+        elif operation == "data_urls":
+            self._handle_data_urls_req()
         else:
             raise tornado.web.HTTPError(400)
 
@@ -83,21 +82,22 @@ class JobsHandler(tornado.web.RequestHandler):
         try:
             job_obj_id = ObjectId(job_id)
         except:
-            raise tornado.web.HTTPError(400)#Be more exact about error?
+            # TODO: provide error message
+            raise tornado.web.HTTPError(400)
 
         self.jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_status_cb)
 
-    def _handle_logs_req(self):
+    def _handle_data_urls_req(self):
         job_id = self.get_argument("job")
 
-        rospy.loginfo("got log request for job id '%s'", job_id)
+        rospy.loginfo("got data request for job id '%s'", job_id)
 
         try:
             job_obj_id = ObjectId(job_id)
         except:
             raise tornado.web.HTTPError(400)
 
-        self.jobs_collection.find_one({"_id": ObjectId(job_id), "status": "finished"}, callback=self._db_job_logs_cb)
+        self.jobs_collection.find_one({"_id": ObjectId(job_id), "status": "finished"}, callback=self._db_job_data_urls_cb)
 
     def _handle_submit(self):
         username = self.get_argument("username")
@@ -106,7 +106,6 @@ class JobsHandler(tornado.web.RequestHandler):
         git_url = self.get_argument("git_url")
         git_tag = self.get_argument("git_tag")
 
-        # TODO: better retrieve this from db
         if not secret == self.rll_settings["secret"]:
             rospy.logwarn("authentication error")
             raise tornado.web.HTTPError(401)
@@ -126,7 +125,7 @@ class JobsHandler(tornado.web.RequestHandler):
                       username, git_url, git_tag, project)
 
         self.handle_new_submission(username,project,git_url,git_tag)
-        
+
 
     def _db_open_job_cb(self, job, error):
         rospy.loginfo("db open job callback with job %s and error %s", job, error)
@@ -186,17 +185,21 @@ class JobsHandler(tornado.web.RequestHandler):
         self.write(json_encode(result))
         self.finish()
 
-    def _db_job_logs_cb(self, job, error):
-        rospy.loginfo("job log db callback with job %s and error %s", job, error)
+    def _db_job_data_urls_cb(self, job, error):
+        rospy.loginfo("job data db callback with job %s and error %s", job, error)
         if error:
             result = {"status": "error", "error": "No finished job with this ID"}
         else:
-            # TODO: also return the other log files
-            result = {"status": "success", "log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/client.log"}
+            result = {"status": "success", "build_log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/build.log",
+                      "video_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/video.mp4",
+                      "sim_run_client_log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/sim-client.log",
+                      "sim_run_iface_log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/sim-iface.log",
+                      "real_run_client_log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/real-client.log",
+                      "real_run_iface_log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/real-iface.log"}
 
         self.write(json_encode(result))
         self.finish()
-        
+
     def _add_job_position(self,result,error):
         rospy.loginfo("_add_job_position callback with resutl %s and error %s", result, error)
 
@@ -233,10 +236,10 @@ class JobsHandler(tornado.web.RequestHandler):
         cam_mapping = {"/iiwa_1/": self.rll_settings["cams_base_url"] + "/stream1/mjpg/video.mjpg",
                        "/iiwa_2/": self.rll_settings["cams_base_url"] + "/stream2/mjpg/video.mjpg"}
         return cam_mapping.get(ns, "unknown")
-    
-    @tornado.gen.coroutine            
+
+    @tornado.gen.coroutine
     def _update_submission(self,result,error):
-        
+
         if error:
             rospy.loginfo(error)
             raise tornado.web.HTTPError(500, error)
@@ -248,17 +251,17 @@ class JobsHandler(tornado.web.RequestHandler):
                 result = {"status": "error", "error": "Nothing was modified"}
             elif result.matched_count and result.modified_count:
                 #Job was found and updated
-                #self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project": self.get_argument("project")},callback=self._sent_result)
                 future = self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project": self.get_argument("project")})
                 res = yield future
-                result = {"status": "success", "job_id": str(res["_id"])} #Set new flag for stating modified?
+                # TODO: use new flag to make clear that it's modified
+                result = {"status": "success", "job_id": str(res["_id"])}
             else:
                  raise tornado.web.HTTPError(500, "Unexpected Error")
-            
+
             self.write(json_encode(result))
             self.finish()
 
-        
+
     @tornado.gen.coroutine
     def handle_new_submission(self,username,project,git_url,git_tag):
         try:
@@ -272,7 +275,7 @@ class JobsHandler(tornado.web.RequestHandler):
                 self.finish()
                 return
             rospy.loginfo("Length of submission queue is %d. Max is %d"%(submission_count,max_sub_queue))
-            
+
             #Then check if user has running job
             future_run_job = self.jobs_collection.find_one({"status":"running","project":project,"username":self.get_argument("username")})
             job = yield future_run_job
@@ -283,7 +286,7 @@ class JobsHandler(tornado.web.RequestHandler):
                 self.finish()
                 return
             rospy.loginfo("Found no running job for user.")
-            
+
             #Check for existing submission
             future_existing_sub = self.jobs_collection.find_one({"status":"submitted","username":self.get_argument("username"),"project":self.get_argument("project")})
             result = yield future_existing_sub
@@ -302,10 +305,10 @@ class JobsHandler(tornado.web.RequestHandler):
                 new_job = {"username": username, "project": project, "git_url": git_url, "git_tag": git_tag,
                 "status": "submitted", "created": datetime.datetime.now()}
                 self.jobs_collection.insert_one(new_job, callback=self._db_job_insert_cb)
-        
+
         except Exception, e:
                  raise tornado.web.HTTPError(500,e)
-        
+
 
 if __name__ == '__main__':
     rospy.init_node('rll_server')

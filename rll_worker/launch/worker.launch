@@ -2,9 +2,12 @@
 <launch>
   <arg name="robot" default="iiwa" />
   <arg name="project" default="greetings" />
+  <!-- running in simulation or with the real hardware -->
+  <arg name="mode" default="sim" />
 
   <node ns="$(arg robot)" name="rll_worker" pkg="rll_worker" type="worker.py" output="screen">
     <param name="project" value="$(arg project)"/>
+    <param name="mode" value="$(arg mode)"/>
   </node>
 
 </launch>

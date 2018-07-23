@@ -144,7 +144,7 @@ def start_job(git_url, git_tag, username, job_id, project):
 
     rospy.loginfo("building project")
     cmd_result = client_container.exec_run("catkin build --no-status", stdin=True, tty=True)
-    write_logs(job_id, cmd_result[1], "build")
+    write_build_log(job_id, cmd_result[1])
     if cmd_result[0] != 0:
         rospy.logerr("building project failed")
 
@@ -223,7 +223,7 @@ def finish_container(container):
 
 def get_client_log(job_id, container):
     log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
-    log_file = path.join(log_folder, "client.log")
+    log_file = path.join(log_folder, run_mode + "-client.log")
     size_counter = 0
 
     container.exec_run("chown root: /tmp/client.log", user="root")
@@ -242,7 +242,7 @@ def get_client_log(job_id, container):
 
 def get_iface_log(job_id, container):
     log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
-    log_file = path.join(log_folder, "iface.log")
+    log_file = path.join(log_folder, run_mode + "-iface.log")
 
     container.exec_run("cp /tmp/iface.log /tmp/iface.log.bak", user="root")
     container.exec_run("chown root: /tmp/iface.log.bak", user="root")
@@ -254,27 +254,27 @@ def get_iface_log(job_id, container):
     container.exec_run("rm /tmp/iface.log.bak", user="root")
     container.exec_run("truncate -s 0 /tmp/iface.log")
 
-def write_logs(job_id, log_str, log_type):
-    rospy.loginfo("\n%s logs:\n\n%s", log_type, log_str)
+def write_build_log(job_id, log_str):
+    rospy.loginfo("build logs:\n\n%s", log_str)
 
+    # if it should be saved with ANSI code removal
     # https://stackoverflow.com/questions/14693701/how-can-i-remove-the-ansi-escape-sequences-from-a-string-in-python
-    # TODO: as an alternative, save without ANSI codes removal and use ansi2html for formatting in browser
-    ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
-    log_str = ansi_escape.sub('', log_str)
+    # ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
+    # log_str = ansi_escape.sub('', log_str)
 
-    log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
+    log_folder = path.join(rll_settings["logs_save_dir"], str(job_id))
     if not path.exists(log_folder):
         makedirs(log_folder)
-    log_file = log_folder + "/" + log_type  + ".log"
+    log_file = path.join(log_folder, "build.log")
     log_ptr = open(log_file, "w")
     log_ptr.write(log_str)
     log_ptr.close()
-    rospy.loginfo("wrote %s logs to disk", log_type)
+    rospy.loginfo("wrote build logs to disk")
 
 
 def job_result_codes_to_string(status):
-    job_codes = {JobStatus.SUCCESS: "success", JobStatus.FAILURE: "failure",
-                 JobStatus.INTERNAL_ERROR: "internal error"}
+    job_codes = {JobStatus.SUCCESS: run_mode + " success", JobStatus.FAILURE: run_mode + " failure",
+                 JobStatus.INTERNAL_ERROR: run_mode + " internal error"}
     return job_codes.get(status, "unknown")
 
 
@@ -445,7 +445,8 @@ if __name__ == '__main__':
         rospy.loginfo("using database %s", db_name)
 
     project_name = rospy.get_param("~project")
-    rospy.loginfo("processing project %s", project_name)
+    run_mode = rospy.get_param("~mode")
+    rospy.loginfo("processing project %s in %s mode", project_name, run_mode)
     try:
         project_settings = rll_settings["project_settings"][project_name]
     except:
