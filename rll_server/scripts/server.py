@@ -97,7 +97,7 @@ class JobsHandler(tornado.web.RequestHandler):
         except:
             raise tornado.web.HTTPError(400)
 
-        self.jobs_collection.find_one({"_id": ObjectId(job_id), "status": "finished"}, callback=self._db_job_data_urls_cb)
+        self.jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_data_urls_cb)
 
     def _handle_submit(self):
         username = self.get_argument("username")
@@ -168,7 +168,7 @@ class JobsHandler(tornado.web.RequestHandler):
     def _db_job_data_urls_cb(self, job, error):
         rospy.loginfo("job data db callback with job %s and error %s", job, error)
         if error:
-            result = {"status": "error", "error": "No finished job with this ID"}
+            result = {"status": "error", "error": "No job with this ID"}
         else:
             result = {"status": "success", "build_log_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/build.log",
                       "video_url": self.rll_settings["logs_base_url"] + "/" + str(job["_id"]) + "/video.mp4",
