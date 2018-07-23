@@ -93,22 +93,23 @@ def job_loop(jobs_collection, dClient, ns):
     # TODO: have a timeout here and maybe request feedback
     job_env.wait_for_result()
     resp = job_env.get_result()
-    rospy.loginfo("successfully run job environment with job status %s\n", job_result_codes_to_string(resp.job.status))
+    result_string = job_result_codes_to_string(resp.job.status)
+    rospy.loginfo("successfully run job environment with job status %s\n", result_string)
 
     get_client_log(job_id, client_container)
     get_iface_log(job_id, iface_container)
     unregister_client()
     finish_container(client_container)
 
-    if run_mode == "real":
-        finished_status = "finished"
-    else:
+    if result_string == "sim-success":
         finished_status = "waiting for real"
+    else:
+        finished_status = "finished"
 
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": finished_status,
                                                   "job_end": datetime.datetime.now(),
-                                                  "job_result": job_result_codes_to_string(resp.job.status)}})
+                                                  "job_result": result_string}})
 
     if resp.job.status == JobStatus.INTERNAL_ERROR:
         rospy.logfatal("Internal error happened when running job environment, please investigate (job ID %s)!", job_id)
