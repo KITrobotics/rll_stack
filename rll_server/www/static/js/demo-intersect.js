@@ -77,7 +77,7 @@ $(function() {
                         job_done_or_error = true;
                     }
 
-                    if (obj.job_status == "running") {
+                    if (obj.job_status == "running real") {
                         stream_cam(true, obj.cam_url);
                     } else if (obj.job_status == "finished") {
                         // end cam stream

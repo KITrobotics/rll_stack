@@ -41,12 +41,14 @@ environment_containers = []
 topic_sync_names = {}
 
 def job_loop(jobs_collection, dClient, ns):
-    # rospy.loginfo("searching for new job in namespace '%s'", ns)
-    global idle_start
+    if run_mode == "real":
+        search_status = "waiting for real"
+    else:
+        search_status = "submitted"
 
     # TODO: use indexing
-    job = jobs_collection.find_one_and_update({"project": project_name, "status": "submitted"},
-                                              {"$set": {"status": "running",
+    job = jobs_collection.find_one_and_update({"project": project_name, "status": search_status},
+                                              {"$set": {"status": "processing " + run_mode + " started",
                                                         "ns": ns,
                                                         "job_start": datetime.datetime.now()}},
                                               sort=[("created", pymongo.ASCENDING)])
@@ -98,12 +100,17 @@ def job_loop(jobs_collection, dClient, ns):
     unregister_client()
     finish_container(client_container)
 
+    if run_mode == "real":
+        finished_status = "finished"
+    else:
+        finished_status = "waiting for real"
+
     jobs_collection.find_one_and_update({"_id": job_id},
-                                        {"$set": {"status": "finished",
+                                        {"$set": {"status": finished_status,
                                                   "job_end": datetime.datetime.now(),
                                                   "job_result": job_result_codes_to_string(resp.job.status)}})
 
-    if (resp.job.status == JobStatus.INTERNAL_ERROR):
+    if resp.job.status == JobStatus.INTERNAL_ERROR:
         rospy.logfatal("Internal error happened when running job environment, please investigate (job ID %s)!", job_id)
         sys.exit(1)
 
@@ -112,7 +119,7 @@ def job_loop(jobs_collection, dClient, ns):
     job_idle.send_goal(job_idle_goal)
     job_idle.wait_for_result()
     resp = job_idle.get_result()
-    if (resp.job.status == JobStatus.INTERNAL_ERROR):
+    if resp.job.status == JobStatus.INTERNAL_ERROR:
         rospy.logfatal("Internal error happened when running idle service, please investigate!")
         sys.exit(1)
 
@@ -137,12 +144,14 @@ def start_job(git_url, git_tag, username, job_id, project):
 
         sys.exit(1)
 
+    jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "downloading code"}})
     # TODO: handle clone failures
     success = get_exp_code(git_url, git_tag, username, job_id, project, client_container)
     if not success:
         return False, client_container
 
     rospy.loginfo("building project")
+    jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "building"}})
     cmd_result = client_container.exec_run("catkin build --no-status", stdin=True, tty=True)
     write_build_log(job_id, cmd_result[1])
     if cmd_result[0] != 0:
@@ -155,6 +164,7 @@ def start_job(git_url, git_tag, username, job_id, project):
         finish_container(client_container)
         return False, client_container
 
+    jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "running " + run_mode}})
     launch_file = project_settings["launch_client"]
     launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
     client_container.reload()
