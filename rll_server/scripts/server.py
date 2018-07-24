@@ -195,8 +195,9 @@ class JobsHandler(tornado.web.RequestHandler):
         job_status = job["status"]
         result = {"status": "success", "job_status": job_status}
 
-        if job_status == "finished":
+        if job_status == "finished" or job_status == "waiting for real":
             result["job_result"] = job["job_result"]
+            result["job_data"] = job["job_data"]
         elif job_status == "running real":
             result["cam_url"] = self._ns_to_cam(job["ns"])
 

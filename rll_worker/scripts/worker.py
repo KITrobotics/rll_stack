@@ -106,10 +106,18 @@ def job_loop(jobs_collection, dClient, ns):
     else:
         finished_status = "finished"
 
+    job_extra_data = {}
+    if resp.job_data:
+        rospy.loginfo("extra job data:")
+        for element in resp.job_data:
+            rospy.loginfo("%s: %f", element.description, element.value)
+            job_extra_data[element.description] = element.value
+
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": finished_status,
                                                   "job_end": datetime.datetime.now(),
-                                                  "job_result": result_string}})
+                                                  "job_result": result_string,
+                                                  "job_data": job_extra_data}})
 
     if resp.job.status == JobStatus.INTERNAL_ERROR:
         rospy.logfatal("Internal error happened when running job environment, please investigate (job ID %s)!", job_id)
