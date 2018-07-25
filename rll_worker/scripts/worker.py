@@ -24,6 +24,7 @@ import rosgraph
 import yaml
 import actionlib
 from rll_msgs.msg import *
+from axis_camera.msg import VideostreamAction, VideostreamGoal
 
 import docker
 import pymongo
@@ -41,7 +42,7 @@ environment_containers = []
 topic_sync_names = {}
 
 def job_loop(jobs_collection, dClient, ns):
-    if run_mode == "real":
+    if run_mode == "real" and sim_check == True:
         search_status = "waiting for real"
     else:
         search_status = "submitted"
@@ -82,6 +83,8 @@ def job_loop(jobs_collection, dClient, ns):
         rospy.logfatal("Job env action server is not available, please investigate!")
         sys.exit(1)
 
+    if run_mode == "real":
+        start_recording(job_id)
     job_env_goal = JobEnvGoal()
     job_env.send_goal(job_env_goal)
     rospy.loginfo("running job env")
@@ -96,6 +99,8 @@ def job_loop(jobs_collection, dClient, ns):
     result_string = job_result_codes_to_string(resp.job.status)
     rospy.loginfo("successfully run job environment with job status %s\n", result_string)
 
+    if run_mode == "real":
+        stop_recording()
     get_client_log(job_id, client_container)
     get_iface_log(job_id, iface_container)
     unregister_client()
@@ -241,7 +246,7 @@ def finish_container(container):
     container.remove()
 
 def get_client_log(job_id, container):
-    log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
+    log_folder = path.join(rll_settings["logs_save_dir"], str(job_id))
     log_file = path.join(log_folder, run_mode + "-client.log")
     size_counter = 0
 
@@ -260,7 +265,7 @@ def get_client_log(job_id, container):
             outfile.write(d)
 
 def get_iface_log(job_id, container):
-    log_folder = path.join(rll_settings["logs_save_dir"],str(job_id))
+    log_folder = path.join(rll_settings["logs_save_dir"], str(job_id))
     log_file = path.join(log_folder, run_mode + "-iface.log")
 
     container.exec_run("cp /tmp/iface.log /tmp/iface.log.bak", user="root")
@@ -434,6 +439,13 @@ def sync_to_client_master(iface_container_ip):
                           srv_name, srv_uri, fake_api, client_master_uri)
             client_master.registerService(srv_name, srv_uri, fake_api)
 
+def start_recording(job_id):
+    goal = VideostreamGoal(str(job_id))
+    video_client.send_goal(goal)
+
+def stop_recording():
+    video_client.cancel_goal()
+
 def on_shutdown_call():
     rospy.loginfo("shutdown call received! Trying to shutdown environment containers")
     for cont in environment_containers:
@@ -465,6 +477,7 @@ if __name__ == '__main__':
 
     project_name = rospy.get_param("~project")
     run_mode = rospy.get_param("~mode")
+    sim_check = rospy.get_param("~sim_check")
     rospy.loginfo("processing project %s in %s mode", project_name, run_mode)
     try:
         project_settings = rll_settings["project_settings"][project_name]
@@ -486,6 +499,12 @@ if __name__ == '__main__':
 
     job_env = actionlib.SimpleActionClient('job_env', JobEnvAction)
     job_idle = actionlib.SimpleActionClient('job_idle', JobEnvAction)
+    if run_mode == "real":
+        video_client = actionlib.SimpleActionClient('videostreamserver', VideostreamAction)
+        available = video_client.wait_for_server(rospy.Duration.from_sec(2.0))
+        if not available:
+            rospy.logfatal("video server not available")
+            sys.exit(1)
 
     rospy.loginfo("ready to process jobs")
     while not rospy.is_shutdown():

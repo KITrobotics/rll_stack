@@ -4,10 +4,13 @@
   <arg name="project" default="greetings" />
   <!-- running in simulation or with the real hardware -->
   <arg name="mode" default="sim" />
+  <!-- set to false if mode is "real" and no previous check in simulation is needed -->
+  <arg name="sim_check" default="true" />
 
   <node ns="$(arg robot)" name="rll_worker" pkg="rll_worker" type="worker.py" output="screen">
     <param name="project" value="$(arg project)"/>
     <param name="mode" value="$(arg mode)"/>
+    <param name="sim_check" value="$(arg sim_check)"/>
   </node>
 
 </launch>

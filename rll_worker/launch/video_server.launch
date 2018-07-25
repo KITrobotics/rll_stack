@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="host_0" default="141.3.80.180" />
+  <arg name="host_1" default="141.3.80.181" />
+
+
+  <node ns="iiwa_1" name="video_server" pkg="axis_camera" type="VideostreamServer.py" output="screen">
+    <param name="host" value="$(arg host_0)"/>
+  </node>
+
+  <node ns="iiwa_2" name="video_server" pkg="axis_camera" type="VideostreamServer.py" output="screen">
+    <param name="host" value="$(arg host_1)"/>
+  </node>
+
+</launch>
