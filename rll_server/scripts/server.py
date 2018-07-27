@@ -69,8 +69,8 @@ class JobsHandler(tornado.web.RequestHandler):
     def post(self):
         operation = self.get_argument("op")
 
-        if operation == "submit":
-            self._handle_submit()
+        if operation == "submit_git" or operation == "submit_tar":
+            self._handle_submit(operation)
         else:
             raise tornado.web.HTTPError(400)
 
@@ -99,12 +99,16 @@ class JobsHandler(tornado.web.RequestHandler):
 
         self.jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_data_urls_cb)
 
-    def _handle_submit(self):
+    def _handle_submit(self, operation):
         username = self.get_argument("username")
         secret = self.get_argument("secret")
         project = self.get_argument("project")
-        git_url = self.get_argument("git_url")
-        git_tag = self.get_argument("git_tag")
+
+        if operation == "submit_git":
+            git_url = self.get_argument("git_url")
+            git_tag = self.get_argument("git_tag")
+        elif operation == "submit_tar":
+            tar_url = self.get_argument("tar_url")
 
         if not secret == self.rll_settings["secret"]:
             rospy.logwarn("authentication error")
@@ -121,10 +125,14 @@ class JobsHandler(tornado.web.RequestHandler):
             self.finish()
             return
 
-        rospy.loginfo("got a new submission with username '%s', Git repo URL '%s' and tag '%s' for project '%s'",
-                      username, git_url, git_tag, project)
+        if operation == "submit_git":
+            rospy.loginfo("got a new submission with username '%s', Git repo URL '%s' and tag '%s' for project '%s'",
+                          username, git_url, git_tag, project)
+        elif operation == "submit_tar":
+            rospy.loginfo("got a new submission with username '%s', Tar archive URL '%s' for project '%s'",
+                          username, tar_url, project)
 
-        self.handle_new_submission(username,project,git_url,git_tag)
+        self._handle_new_submission(operation, username, project)
 
     def _valid_git_url(self, git_url, git_tag):
         g = git.cmd.Git()
@@ -207,6 +215,7 @@ class JobsHandler(tornado.web.RequestHandler):
         rospy.loginfo("job insert db callback with result %s and error %s", result, error)
 
         if error:
+            rospy.loginfo(error)
             raise tornado.web.HTTPError(500, error)
         else:
             result = {"status": "success", "job_id": str(result.inserted_id)}
@@ -246,23 +255,25 @@ class JobsHandler(tornado.web.RequestHandler):
 
 
     @tornado.gen.coroutine
-    def handle_new_submission(self,username,project,git_url,git_tag):
+    def _handle_new_submission(self, operation, username, project):
         try:
             # check if max queue size is reached
             future = self.jobs_collection.find({"status":"submitted"}).count()
             submission_count = yield future
             max_sub_queue = rll_settings["sub_queue_limit"]
-            if submission_count>max_sub_queue:
+            if submission_count > max_sub_queue:
                 response = {"status": "error", "error": "Queue at max size"}
                 self.write(json_encode(response))
                 self.finish()
                 return
-            rospy.loginfo("Length of submission queue is %d. Max is %d"%(submission_count,max_sub_queue))
+
+            rospy.loginfo("Length of submission queue is %d. Max is %d" % (submission_count, max_sub_queue))
 
             # then check if user has running job
-            future_run_job = self.jobs_collection.find_one({"status": {"$ne": "finished"},
+            future_run_job = self.jobs_collection.find_one({"$and": [{"status": {"$ne": "finished"}},
+                                                                     {"status": {"$ne": "submitted"}}],
                                                             "project": project,
-                                                            "username": self.get_argument("username")})
+                                                            "username": username})
             job = yield future_run_job
             if not job == None:
                 rospy.loginfo("Found running job for user.")
@@ -274,27 +285,37 @@ class JobsHandler(tornado.web.RequestHandler):
 
             # check for existing submission
             future_existing_sub = self.jobs_collection.find_one({"status": "submitted",
-                                                                 "username": self.get_argument("username"),
-                                                                 "project": self.get_argument("project")})
+                                                                 "username": username,
+                                                                 "project": project})
             result = yield future_existing_sub
             if result:
                 # submission found: Update it
-                self.jobs_collection.update_one({"username": self.get_argument("username"),
-                                                 "project": self.get_argument("project"),
-                                                 "status": "submitted"},
-                                                update = { "$set": { "git_tag": self.get_argument("git_tag") } },
-                                                callback=self._update_submission, upsert=False)
+                if operation == "submit_git":
+                    self.jobs_collection.update_one({"username": username,
+                                                     "project": project,
+                                                     "status": "submitted"},
+                                                    update = {"$set": {"git_tag": self.get_argument("git_tag")}},
+                                                    callback=self._update_submission, upsert=False)
+                elif operation == "submit_tar":
+                    self.jobs_collection.update_one({"username": username,
+                                                     "project": project,
+                                                     "status": "submitted"},
+                                                    update = {"$set": {"tar_url": self.get_argument("tar_url")}},
+                                                    callback=self._update_submission, upsert=False)
             else:
                 # no submission for user and project found, create new one
-                git_url = self.get_argument("git_url")
-                git_tag = self.get_argument("git_tag")
-                if not self._valid_git_url(git_url, git_tag):
-                    return
-
-                username = self.get_argument("username")
-                project = self.get_argument("project")
-                new_job = {"username": username, "project": project, "git_url": git_url, "git_tag": git_tag,
-                "status": "submitted", "created": datetime.datetime.now()}
+                if operation == "submit_git":
+                    git_url = self.get_argument("git_url")
+                    git_tag = self.get_argument("git_tag")
+                    if not self._valid_git_url(git_url, git_tag):
+                        return
+                    new_job = {"username": username, "project": project, "submit_type": "git",
+                               "git_url": git_url, "git_tag": git_tag,
+                               "status": "submitted", "created": datetime.datetime.now()}
+                elif operation == "submit_tar":
+                    new_job = {"username": username, "project": project, "submit_type": "tar",
+                               "tar_url": self.get_argument("tar_url"),
+                               "status": "submitted", "created": datetime.datetime.now()}
                 self.jobs_collection.insert_one(new_job, callback=self._db_job_insert_cb)
 
         except Exception, e:

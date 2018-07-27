@@ -37,6 +37,8 @@ from os import path, makedirs, remove
 from shutil import rmtree
 import sys
 import socket
+from urllib2 import urlopen, URLError
+from tarfile import is_tarfile
 
 environment_containers = []
 topic_sync_names = {}
@@ -59,15 +61,12 @@ def job_loop(jobs_collection, dClient, ns):
         return
 
     job_id = job["_id"]
-    git_url = job["git_url"]
-    git_tag = job["git_tag"]
-    project = job["project"]
-    username = job["username"]
+    submit_type = job["submit_type"]
 
-    rospy.loginfo("got job with id '%s' for project '%s', Git URL '%s', Git Tag '%s' and create date %s", job_id,
-                  project, git_url, git_tag, str(job["created"]))
+    rospy.loginfo("got job with id '%s' with submit type'%s' and create date %s", job_id, submit_type,
+                  str(job["created"]))
 
-    success, client_container = start_job(git_url, git_tag, username, job_id, project)
+    success, client_container = start_job(job, job_id, submit_type)
     if not success:
         rospy.loginfo("starting job failed, returning")
         return
@@ -140,14 +139,13 @@ def job_loop(jobs_collection, dClient, ns):
     rospy.loginfo("finished job with id '%s' in namespace '%s'\n", job_id, ns)
 
 
-def start_job(git_url, git_tag, username, job_id, project):
+def start_job(job, job_id, submit_type):
     try:
         #client container
         cc_name = "cc_" + ns.replace("/", "")
         # terminal command to remove all containers from image "rll-base":
         # docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll-base --format="{{.ID}}"))
         client_container = create_container(cc_name, "rll-base", False)
-
     except:
         rospy.logfatal("failed to create container:\n%s", traceback.format_exc())
         # reset job for rerun
@@ -155,13 +153,13 @@ def start_job(git_url, git_tag, username, job_id, project):
                                             {"$set": {"status": "submitted",
                                                       "job_end": datetime.datetime.now(),
                                                       "job_result": "creating container failed"}})
-
         sys.exit(1)
 
     jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "downloading code"}})
     # TODO: handle clone failures
-    success = get_exp_code(git_url, git_tag, username, job_id, project, client_container)
+    success = get_exp_code(job, job_id, submit_type, client_container)
     if not success:
+        finish_container(client_container)
         return False, client_container
 
     rospy.loginfo("building project")
@@ -180,7 +178,7 @@ def start_job(git_url, git_tag, username, job_id, project):
 
     jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "running " + run_mode}})
     launch_file = project_settings["launch_client"]
-    launch_cmd = "roslaunch --disable-title " + project + " " + launch_file + " robot:=" + ns
+    launch_cmd = "roslaunch --disable-title " + job["project"] + " " + launch_file + " robot:=" + ns
     client_container.reload()
     client_container_ip = client_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
 
@@ -198,34 +196,69 @@ def start_job(git_url, git_tag, username, job_id, project):
     return True, client_container
 
 
-def get_exp_code(git_url, git_tag, username, job_id, project, container):
-    repo_clone_dir = rll_settings["git_archive_dir"] + "/" + username + "/" + project
-    repo_archive_file = repo_clone_dir + ".tar"
-    ws_repo_path = "/home/rll_user/ws/src/" + project
+def get_exp_code(job, job_id, submit_type, container):
+    project = job["project"]
+    ws_repo_path = path.join("/home/rll_user/ws/src/", project)
 
-    repo = Repo.clone_from(git_url, repo_clone_dir, branch=git_tag) # TODO: --single-branch for not cloning all branches
-    if repo.__class__ is not Repo:
-        rospy.logerr("cloning project repo failed")
+    if submit_type == "git":
+        repo_clone_dir = path.join(rll_settings["git_archive_dir"], username, project)
+        code_archive_file = repo_clone_dir + ".tar"
+
+        # TODO: --single-branch for not cloning all branches
+        repo = Repo.clone_from(job["git_url"], repo_clone_dir, branch=job["git_tag"])
+        if repo.__class__ is not Repo:
+            rospy.logerr("cloning project repo failed")
+            jobs_collection.find_one_and_update({"_id": job_id},
+                                                {"$set": {"status": "finished",
+                                                          "job_end": datetime.datetime.now(),
+                                                          "job_result": "fetching project code failed"}})
+            return False
+        with open(code_archive_file, 'wb') as fwp:
+            repo.archive(fwp)
+
+    elif submit_type == "tar":
+        # TODO: check into Git repo for deduplication and compression
+        code_archive_dir = path.join(rll_settings["job_data_save_dir"], str(job_id))
+        code_archive_file = path.join(code_archive_dir, "code.tar")
+
+        try:
+            response = urlopen(job["tar_url"])
+        except URLError as e:
+            if hasattr(e, "reason"):
+                rospy.logerr("failed to reach server for tar archive download: %s", e.reason)
+            elif hasattr(e, "code"):
+                rospy.logerr("server error when downloading tar archive: %s", e.code)
+            jobs_collection.find_one_and_update({"_id": job_id},
+                                                {"$set": {"status": "finished",
+                                                          "job_end": datetime.datetime.now(),
+                                                          "job_result": "fetching project code failed"}})
+            return False
+        makedirs(code_archive_dir)
+        with open(code_archive_file, 'wb') as fwp:
+            fwp.write(response.read())
+
+    if not is_tarfile(code_archive_file):
         jobs_collection.find_one_and_update({"_id": job_id},
                                             {"$set": {"status": "finished",
                                                       "job_end": datetime.datetime.now(),
                                                       "job_result": "fetching project code failed"}})
+        rospy.logerr("code archive is not a tar file")
         return False
 
-    with open(repo_archive_file, 'wb') as fwp:
-        repo.archive(fwp)
-
-    with open(repo_archive_file, 'rb') as frp:
+    with open(code_archive_file, 'rb') as frp:
         container.start()
+        # TODO: figure out if this is a bug in docker-py or Docker
         # wait a moment to make sure that the container is started
         rospy.sleep(1)
         container.exec_run("mkdir " + ws_repo_path)
         container.put_archive(ws_repo_path, frp)
         rospy.loginfo("uploaded project to container")
 
-    remove(repo_archive_file)
-    # TODO: create a proper archive and don't delete the repo
-    rmtree(repo_clone_dir, ignore_errors=True)
+
+    if submit_type == "git":
+        remove(code_archive_file)
+        # TODO: create a proper archive and don't delete the repo
+        rmtree(repo_clone_dir, ignore_errors=True)
 
     return True
 
@@ -246,7 +279,7 @@ def finish_container(container):
     container.remove()
 
 def get_client_log(job_id, container):
-    log_folder = path.join(rll_settings["logs_save_dir"], str(job_id))
+    log_folder = path.join(rll_settings["job_data_save_dir"], str(job_id))
     log_file = path.join(log_folder, run_mode + "-client.log")
     size_counter = 0
 
@@ -265,7 +298,7 @@ def get_client_log(job_id, container):
             outfile.write(d)
 
 def get_iface_log(job_id, container):
-    log_folder = path.join(rll_settings["logs_save_dir"], str(job_id))
+    log_folder = path.join(rll_settings["job_data_save_dir"], str(job_id))
     log_file = path.join(log_folder, run_mode + "-iface.log")
 
     container.exec_run("cp /tmp/iface.log /tmp/iface.log.bak", user="root")
@@ -286,7 +319,7 @@ def write_build_log(job_id, log_str):
     # ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
     # log_str = ansi_escape.sub('', log_str)
 
-    log_folder = path.join(rll_settings["logs_save_dir"], str(job_id))
+    log_folder = path.join(rll_settings["job_data_save_dir"], str(job_id))
     if not path.exists(log_folder):
         makedirs(log_folder)
     log_file = path.join(log_folder, "build.log")

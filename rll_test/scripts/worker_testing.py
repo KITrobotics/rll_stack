@@ -53,7 +53,7 @@ class test_Worker(unittest.TestCase):
             print("wait for timeout")
             time.sleep(5)
     
-        log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+        log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
         print("Path for logs: "+log_folder)
         print(str(path.exists(log_folder)))
         self.assertTrue(path.exists(log_folder),"Check for log_folder")
@@ -95,7 +95,7 @@ class test_Worker(unittest.TestCase):
             time.sleep(5)
     
         if job_finished:
-            log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+            log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
             print("Path for logs: "+log_folder)
             self.assertTrue(path.exists(log_folder),"Assert that log_folder exists")
     
@@ -135,7 +135,7 @@ class test_Worker(unittest.TestCase):
     
         self.assertTrue(job_finished,"Assert that job_result is set to finished")
         if job_finished:
-            log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+            log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
             print("Path for logs: "+log_folder)
             self.assertTrue(path.exists(log_folder),"Check for log_folder")
     
@@ -162,7 +162,7 @@ class test_Worker(unittest.TestCase):
             print("wait for timeout")
             time.sleep(5)
     
-        log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+        log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
         print("Path for logs: "+log_folder)
         print(str(path.exists(log_folder)))
         self.assertTrue(path.exists(log_folder),"Assert that log_folder exists")
@@ -202,7 +202,7 @@ class test_Worker(unittest.TestCase):
             print("wait for build to finish")
             time.sleep(5)
     
-        log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+        log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
         print("Path for logs: "+log_folder)
         print(str(path.exists(log_folder)))
         self.assertTrue(path.exists(log_folder),"Assert that log_folder exists")
@@ -232,7 +232,7 @@ class test_Worker(unittest.TestCase):
     
         self.assertTrue(job_finished,"Job is finished")
         if job_finished:
-            log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+            log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
             print("Path for logs: "+log_folder)
             self.assertTrue(path.exists(log_folder),"Assert that log_folder exists")
             self.assertEqual(job_result,"execution timeout")
@@ -270,7 +270,7 @@ class test_Worker(unittest.TestCase):
             print("wait for timeout")
             time.sleep(5)
         
-        log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+        log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
         print("Path for logs: "+log_folder)
         print(str(path.exists(log_folder)))
         self.assertTrue(path.exists(log_folder),"Assert that log_folder exists")
@@ -384,7 +384,7 @@ class test_Worker(unittest.TestCase):
             print("wait for timeout")
             time.sleep(5)
         
-        log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+        log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
         print("Path for logs: "+log_folder)
         print(str(path.exists(log_folder)))
         self.assertTrue(path.exists(log_folder),"Assert that log_folder exists")
@@ -450,7 +450,7 @@ class test_Worker(unittest.TestCase):
             print("wait for timeout")
             time.sleep(5)
         
-        log_folder = path.join(rll_settings["logs_save_dir"],job_id)
+        log_folder = path.join(rll_settings["job_data_save_dir"],job_id)
         print("Path for logs: "+log_folder)
         print(str(path.exists(log_folder)))
         self.assertTrue(path.exists(log_folder),"Assert that log_folder exists")
