@@ -157,18 +157,21 @@ class JobsHandler(tornado.web.RequestHandler):
         rospy.loginfo("job status db callback with job %s and error %s", job, error)
         if error or not job:
             result = {"status": "error", "error": "No job with this ID"}
-        else:
-            if job["status"] == "submitted":
-                check_status = "submitted"
-            else:
-                check_status = "waiting for real"
-            future = self.jobs_collection.find({"status": check_status, "created": {"$lte": job["created"]}}).count()
+            self.write(json_encode(result))
+            self.finish()
+            return
+
+        if job["status"] == "submitted" or job["status"] == "waiting for real":
+            future = self.jobs_collection.find({"status": job["status"], "created": {"$lte": job["created"]}}).count()
             try:
                 position = yield future
                 result = self._build_status_resp(job)
                 result["position"] = position
             except Exception, e:
                 raise tornado.web.HTTPError(500, e)
+        else:
+            result = self._build_status_resp(job)
+            result["position"] = -1
 
         self.write(json_encode(result))
         self.finish()
@@ -205,7 +208,10 @@ class JobsHandler(tornado.web.RequestHandler):
 
         if job_status == "finished" or job_status == "waiting for real":
             result["job_result"] = job["job_result"]
-            result["job_data"] = job["job_data"]
+            if "job_data" in job:
+                result["job_data"] = job["job_data"]
+            else:
+                result["job_data"] = None
         elif job_status == "running real":
             result["cam_url"] = self._ns_to_cam(job["ns"])
 
