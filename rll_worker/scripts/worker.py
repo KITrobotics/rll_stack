@@ -105,7 +105,7 @@ def job_loop(jobs_collection, dClient, ns):
     unregister_client()
     finish_container(client_container)
 
-    if result_string == "sim-success":
+    if result_string == "sim success":
         finished_status = "waiting for real"
     else:
         finished_status = "finished"
@@ -201,7 +201,7 @@ def get_exp_code(job, job_id, submit_type, container):
     ws_repo_path = path.join("/home/rll_user/ws/src/", project)
 
     if submit_type == "git":
-        repo_clone_dir = path.join(rll_settings["git_archive_dir"], username, project)
+        repo_clone_dir = path.join(rll_settings["git_archive_dir"], job["username"], project)
         code_archive_file = repo_clone_dir + ".tar"
 
         # TODO: --single-branch for not cloning all branches
