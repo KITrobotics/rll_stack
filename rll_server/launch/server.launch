@@ -1,6 +1,9 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="production" default="false" />
 
-  <node name="server" pkg="rll_server" type="server.py" output="screen" />
+  <node name="server" pkg="rll_server" type="server.py" output="screen">
+    <param name="production" value="$(arg production)"/>
+  </node>
 
 </launch>

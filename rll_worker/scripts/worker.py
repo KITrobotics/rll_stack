@@ -506,12 +506,11 @@ if __name__ == '__main__':
     config_path = rospack.get_path('rll_config') + "/config/rll.yaml"
     with open(config_path, 'r') as doc:
         rll_settings = yaml.load(doc)
-        db_name = rll_settings["db_name"]
-        rospy.loginfo("using database %s", db_name)
 
     project_name = rospy.get_param("~project")
     run_mode = rospy.get_param("~mode")
     sim_check = rospy.get_param("~sim_check")
+    production_mode = rospy.get_param("~production")
     rospy.loginfo("processing project %s in %s mode", project_name, run_mode)
     try:
         project_settings = rll_settings["project_settings"][project_name]
@@ -519,7 +518,19 @@ if __name__ == '__main__':
         rospy.logfatal("failed to retrieve project settings")
         sys.exit(1)
 
-    db_client = pymongo.MongoClient()
+    if production_mode:
+        rospy.logwarn("started worker in production mode. Press enter if you really want to continue!")
+        raw_input()
+        db_user = rll_settings["production_db_user"]
+        db_pw = rll_settings["production_db_pw"]
+        db_host = rll_settings["production_db_host"]
+        db_name = rll_settings["production_db_name"]
+        db_client_string = "mongodb://" + db_user + ":" + db_pw + "@" + db_host + "/" + db_name
+        db_client = pymongo.MongoClient(db_client_string)
+    else:
+        db_name = rll_settings["test_db_name"]
+        db_client = pymongo.MongoClient()
+    rospy.loginfo("using database %s", db_name)
     jobs_collection = db_client[db_name].jobs
 
     host_ip = get_host_ip()

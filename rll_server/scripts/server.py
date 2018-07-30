@@ -337,11 +337,23 @@ if __name__ == '__main__':
     config_path = rospack.get_path('rll_config') + "/config/rll.yaml"
     with open(config_path, 'r') as doc:
         rll_settings = yaml.load(doc)
-        db_name = rll_settings["db_name"]
-        rospy.loginfo("using database %s", db_name)
 
-    db_client = motor.motor_tornado.MotorClient()
+    production_mode = rospy.get_param("~production")
+    if production_mode:
+        rospy.logwarn("started worker in production mode. Press enter if you really want to continue!")
+        raw_input()
+        db_user = rll_settings["production_db_user"]
+        db_pw = rll_settings["production_db_pw"]
+        db_host = rll_settings["production_db_host"]
+        db_name = rll_settings["production_db_name"]
+        db_client_string = "mongodb://" + db_user + ":" + db_pw + "@" + db_host + "/" + db_name
+        db_client = motor.motor_tornado.MotorClient(db_client_string)
+    else:
+        db_name = rll_settings["test_db_name"]
+        db_client = motor.motor_tornado.MotorClient()
+
     db = db_client[db_name]
+    rospy.loginfo("using database %s", db_name)
 
     app = tornado.web.Application([(r"/jobs", JobsHandler, dict(db=db, rll_settings=rll_settings))],
                                   debug = True)

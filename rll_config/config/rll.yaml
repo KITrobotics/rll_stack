@@ -1,4 +1,9 @@
-db_name: rll_test
+# DB
+test_db_name: rll_test
+production_db_name: rll_test
+production_db_host: localhost
+production_db_user: prod_db_user
+production_db_pw: SET_YOUR_PASSWORD_HERE
 
 # URLs
 api_base_url: http://localhost:8888/
