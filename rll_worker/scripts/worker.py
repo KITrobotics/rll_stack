@@ -116,6 +116,8 @@ def job_loop(jobs_collection, dClient, ns):
         for element in resp.job_data:
             rospy.loginfo("%s: %f", element.description, element.value)
             job_extra_data[element.description] = element.value
+    else:
+        job_extra_data = None
 
     jobs_collection.find_one_and_update({"_id": job_id},
                                         {"$set": {"status": finished_status,
@@ -253,7 +255,6 @@ def get_exp_code(job, job_id, submit_type, container):
         container.exec_run("mkdir " + ws_repo_path)
         container.put_archive(ws_repo_path, frp)
         rospy.loginfo("uploaded project to container")
-
 
     if submit_type == "git":
         remove(code_archive_file)
@@ -527,7 +528,7 @@ if __name__ == '__main__':
     dClient = docker.from_env()
     ic_name = "ic_" + ns.replace("/", "")
     net_name = "bridge_" + ns.replace("/", "")
-    docker_network = dClient.networks.create(net_name)
+    docker_network = dClient.networks.create(net_name, internal=True)
     iface_container = setup_environment_container(dClient)
 
     job_env = actionlib.SimpleActionClient('job_env', JobEnvAction)
