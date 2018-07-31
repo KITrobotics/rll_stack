@@ -5,12 +5,15 @@ production_db_host: localhost
 production_db_user: prod_db_user
 production_db_pw: SET_YOUR_PASSWORD_HERE
 
+# dirs
+git_archive_dir: /home/rll/projects/test
+test_job_data_save_dir: /home/rll/logs/test
+production_job_data_save_dir: /home/rll/logs/test
+
 # URLs
 api_base_url: http://localhost:8888/
 logs_base_url: http://localhost/logs
 cams_base_url: http://localhost
-git_archive_dir: /home/rll/projects/test
-job_data_save_dir: /home/rll/logs/test
 
 secret: SET_YOUR_SECRET_HERE
 
@@ -25,7 +28,7 @@ projects:
 project_settings:
   rll_planning_project:
     launch_client: path_planner.launch
-    launch_iface: planning_iface.launch
+    launch_iface: planning_iface.launch run_three_times:=true
     iface_docker_image: rll-planning-project
     iface_project: rll_planning_project
     iface_node: planning_iface
