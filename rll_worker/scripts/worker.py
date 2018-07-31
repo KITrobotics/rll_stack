@@ -144,7 +144,6 @@ def job_loop(jobs_collection, dClient, ns):
 def start_job(job, job_id, submit_type):
     try:
         #client container
-        cc_name = "cc_" + ns.replace("/", "")
         # terminal command to remove all containers from image "rll-base":
         # docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll-base --format="{{.ID}}"))
         client_container = create_container(cc_name, "rll-base", False)
@@ -497,7 +496,12 @@ def stop_recording():
     video_client.cancel_goal()
 
 def on_shutdown_call():
-    rospy.loginfo("shutdown call received! Trying to shutdown environment containers")
+    rospy.loginfo("shutdown call received! Trying to shutdown containers...")
+    try:
+        cc = dClient.containers.get(cc_name)
+        finish_container(cc)
+    except:
+        pass
     for cont in environment_containers:
         finish_container(cont)
 
@@ -509,6 +513,11 @@ def get_host_ip():
     host_ip = s.getsockname()[0]
     s.close
     return host_ip
+
+def docker_cleanup():
+    rospy.loginfo("pruning Docker containers and networks...")
+    dClient.containers.prune()
+    dClient.networks.prune()
 
 if __name__ == '__main__':
     rospy.init_node('job_worker')
@@ -553,8 +562,10 @@ if __name__ == '__main__':
     cleanup_host_master()
 
     dClient = docker.from_env()
+    cc_name = "cc_" + ns.replace("/", "")
     ic_name = "ic_" + ns.replace("/", "")
     net_name = "bridge_" + ns.replace("/", "")
+    docker_cleanup()
     docker_network = dClient.networks.create(net_name, internal=True)
     iface_container = setup_environment_container(dClient)
 
