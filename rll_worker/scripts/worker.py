@@ -43,7 +43,7 @@ from tarfile import is_tarfile
 environment_containers = []
 topic_sync_names = {}
 
-def job_loop(jobs_collection, dClient, ns):
+def job_loop():
     job = find_new_job()
     if job == None:
         rospy.sleep(0.1)
@@ -140,6 +140,12 @@ def job_loop(jobs_collection, dClient, ns):
     rospy.loginfo("finished job with id '%s' in namespace '%s'\n", job_id, ns)
 
 def find_new_job():
+    if rospy.has_param("~shutdown"):
+        shutdown = rospy.get_param("~shutdown")
+        if shutdown:
+            rospy.loginfo("requested shutdown of worker")
+            sys.exit()
+
     if run_mode == "real" and sim_check == True:
         search_status = "waiting for real"
     else:
@@ -613,4 +619,4 @@ if __name__ == '__main__':
 
     rospy.loginfo("ready to process jobs")
     while not rospy.is_shutdown():
-        job_loop(jobs_collection, dClient, ns)
+        job_loop()
