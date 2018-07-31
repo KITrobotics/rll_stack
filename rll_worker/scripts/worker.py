@@ -44,25 +44,13 @@ environment_containers = []
 topic_sync_names = {}
 
 def job_loop(jobs_collection, dClient, ns):
-    if run_mode == "real" and sim_check == True:
-        search_status = "waiting for real"
-    else:
-        search_status = "submitted"
-
-    # TODO: use indexing
-    job = jobs_collection.find_one_and_update({"project": project_name, "status": search_status},
-                                              {"$set": {"status": "processing " + run_mode + " started",
-                                                        "ns": ns,
-                                                        "job_start": datetime.datetime.now()}},
-                                              sort=[("created", pymongo.ASCENDING)])
-
+    job = find_new_job()
     if job == None:
         rospy.sleep(0.1)
         return
 
     job_id = job["_id"]
     submit_type = job["submit_type"]
-
     rospy.loginfo("got job with id '%s' with submit type '%s' and create date %s", job_id, submit_type,
                   str(job["created"]))
 
@@ -151,6 +139,18 @@ def job_loop(jobs_collection, dClient, ns):
 
     rospy.loginfo("finished job with id '%s' in namespace '%s'\n", job_id, ns)
 
+def find_new_job():
+    if run_mode == "real" and sim_check == True:
+        search_status = "waiting for real"
+    else:
+        search_status = "submitted"
+
+    # TODO: use indexing
+    return jobs_collection.find_one_and_update({"project": project_name, "status": search_status},
+                                               {"$set": {"status": "processing " + run_mode + " started",
+                                                         "ns": ns,
+                                                         "job_start": datetime.datetime.now()}},
+                                               sort=[("created", pymongo.ASCENDING)])
 
 def start_job(job, job_id, submit_type):
     try:
@@ -499,6 +499,21 @@ def sync_to_client_master(iface_container_ip):
                           srv_name, srv_uri, fake_api, client_master_uri)
             client_master.registerService(srv_name, srv_uri, fake_api)
 
+def check_unfinished_jobs():
+    if run_mode == "sim":
+        job = jobs_collection.find_one({"project": project_name, "ns": ns,
+                                        "$and": [{"status": {"$ne": "finished"}},
+                                                 {"status": {"$ne": "submitted"}},
+                                                 {"status": {"$ne": "waiting for real"}}]})
+    else:
+        job = jobs_collection.find_one({"project": project_name, "ns": ns,
+                                        "$and": [{"status": {"$ne": "finished"}},
+                                                 {"status": {"$ne": "submitted"}}]})
+    if job:
+        rospy.logfatal("found a job that is marked running in this namespace")
+        rospy.logfatal("job data: id '%s', status '%s'", job["_id"], job["status"])
+        sys.exit(1)
+
 def start_recording(job_id):
     goal = VideostreamGoal(str(job_id))
     video_client.send_goal(goal)
@@ -581,6 +596,7 @@ if __name__ == '__main__':
     net_name = "bridge_" + ns.replace("/", "")
     docker_cleanup()
     docker_network = dClient.networks.create(net_name, internal=True)
+    check_unfinished_jobs()
     iface_container = setup_environment_container(dClient)
 
     job_env = actionlib.SimpleActionClient('job_env', JobEnvAction)
