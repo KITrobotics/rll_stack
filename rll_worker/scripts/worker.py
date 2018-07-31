@@ -58,10 +58,7 @@ def job_loop():
         rospy.loginfo("Got new job, do you want to continue processing? [Y/n]")
         choice = raw_input().lower()
         if choice == "n":
-            jobs_collection.find_one_and_update({"_id": job_id},
-                                                {"$set": {"status": "submitted",
-                                                          "job_end": datetime.datetime.now(),
-                                                          "job_result": "manual job processing aborted"}})
+            reset_job(job_id, "manual job processing aborted")
             rospy.loginfo("manual job processing aborted, exiting...")
             sys.exit(0)
 
@@ -72,12 +69,7 @@ def job_loop():
 
     available = job_env.wait_for_server(rospy.Duration.from_sec(2.0))
     if not available:
-        # reset the job and run it later again
-        # TODO: be more transparent about this by using a different status code
-        jobs_collection.find_one_and_update({"_id": job_id},
-                                            {"$set": {"status": "submitted",
-                                                      "job_end": datetime.datetime.now(),
-                                                      "job_result": "job env not available"}})
+        reset_job(job_id, "job env not available")
         rospy.logfatal("Job env action server is not available, please investigate!")
         sys.exit(1)
 
@@ -166,11 +158,7 @@ def start_job(job, job_id, submit_type):
         client_container = create_client_container(cc_name, "rll-base")
     except:
         rospy.logfatal("failed to create container:\n%s", traceback.format_exc())
-        # reset job for rerun
-        jobs_collection.find_one_and_update({"_id": job_id},
-                                            {"$set": {"status": "submitted",
-                                                      "job_end": datetime.datetime.now(),
-                                                      "job_result": "creating container failed"}})
+        reset_job(job_id, "creating container failed")
         sys.exit(1)
 
     jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "downloading code"}})
@@ -185,7 +173,7 @@ def start_job(job, job_id, submit_type):
     try:
         cmd_result = client_container.exec_run("catkin build --no-status", stdin=True, tty=True)
     except:
-        rospy.logerr("Docker API error when building")
+        rospy.logerr("Docker API error when building:\n%s", traceback.format_exc())
         jobs_collection.find_one_and_update({"_id": job_id},
                                             {"$set": {"status": "finished",
                                                       "job_end": datetime.datetime.now(),
@@ -246,24 +234,26 @@ def get_exp_code(job, job_id, submit_type, container):
 
     elif submit_type == "tar":
         # TODO: check into Git repo for deduplication and compression
-        code_archive_dir = path.join(rll_settings["job_data_save_dir"], str(job_id))
+        code_archive_dir = path.join(job_data_save_dir, str(job_id))
         code_archive_file = path.join(code_archive_dir, "code.tar")
 
-        try:
-            response = urlopen(job["tar_url"])
-        except URLError as e:
-            if hasattr(e, "reason"):
-                rospy.logerr("failed to reach server for tar archive download: %s", e.reason)
-            elif hasattr(e, "code"):
-                rospy.logerr("server error when downloading tar archive: %s", e.code)
-            jobs_collection.find_one_and_update({"_id": job_id},
-                                                {"$set": {"status": "finished",
-                                                          "job_end": datetime.datetime.now(),
-                                                          "job_result": "fetching project code failed"}})
-            return False
-        makedirs(code_archive_dir)
-        with open(code_archive_file, 'wb') as fwp:
-            fwp.write(response.read())
+        # if this is the case, then the code is already there
+        if not (run_mode == "real" and sim_check == True):
+            try:
+                response = urlopen(job["tar_url"])
+            except URLError as e:
+                if hasattr(e, "reason"):
+                    rospy.logerr("failed to reach server for tar archive download: %s", e.reason)
+                elif hasattr(e, "code"):
+                    rospy.logerr("server error when downloading tar archive: %s", e.code)
+                    jobs_collection.find_one_and_update({"_id": job_id},
+                                                        {"$set": {"status": "finished",
+                                                                  "job_end": datetime.datetime.now(),
+                                                                  "job_result": "fetching project code failed"}})
+                    return False
+            makedirs(code_archive_dir)
+            with open(code_archive_file, 'wb') as fwp:
+                fwp.write(response.read())
 
     if not is_tarfile(code_archive_file):
         jobs_collection.find_one_and_update({"_id": job_id},
@@ -283,7 +273,8 @@ def get_exp_code(job, job_id, submit_type, container):
         try:
             container.put_archive(ws_repo_path, frp)
         except:
-            rospy.logfatal("failed to upload project to container")
+            rospy.logfatal("failed to upload project to container:\n%s", traceback.format_exc())
+            reset_job(job_id, "failed to upload project to container")
             sys.exit(1)
 
         rospy.loginfo("uploaded project to container")
@@ -307,12 +298,23 @@ def create_client_container(container_name, image_name):
                                      storage_opt={"size": "10G"}, # limit disk space to 10GB
                                      name = container_name)
 
+def reset_job(job_id, reason):
+    if run_mode == "real":
+        reset_status = "waiting for real"
+    else:
+        reset_status = "submitted"
+    # TODO: be more transparent about this by using a dedicated status code
+    jobs_collection.find_one_and_update({"_id": job_id},
+                                        {"$set": {"status": reset_status,
+                                                  "job_end": datetime.datetime.now(),
+                                                  "job_result": reason}})
+
 def finish_container(container):
     container.stop()
     container.remove()
 
 def get_client_log(job_id, container):
-    log_folder = path.join(rll_settings["job_data_save_dir"], str(job_id))
+    log_folder = path.join(job_data_save_dir, str(job_id))
     log_file = path.join(log_folder, run_mode + "-client.log")
     size_counter = 0
 
@@ -331,7 +333,7 @@ def get_client_log(job_id, container):
             outfile.write(d)
 
 def get_iface_log(job_id, container):
-    log_folder = path.join(rll_settings["job_data_save_dir"], str(job_id))
+    log_folder = path.join(job_data_save_dir, str(job_id))
     log_file = path.join(log_folder, run_mode + "-iface.log")
 
     container.exec_run("cp /tmp/iface.log /tmp/iface.log.bak", user="root")
@@ -352,7 +354,7 @@ def write_build_log(job_id, log_str):
     # ansi_escape = re.compile(r'\x1B\[[0-?]*[ -/]*[@-~]')
     # log_str = ansi_escape.sub('', log_str)
 
-    log_folder = path.join(rll_settings["job_data_save_dir"], str(job_id))
+    log_folder = path.join(job_data_save_dir, str(job_id))
     if not path.exists(log_folder):
         makedirs(log_folder)
     log_file = path.join(log_folder, "build.log")
@@ -369,7 +371,12 @@ def job_result_codes_to_string(status):
 
 
 def setup_environment_container(dClient):
-    iface_container = dClient.containers.create(project_settings["iface_docker_image"],
+    if run_mode == "real":
+        iface_image = project_settings["iface_docker_image"] + "-real"
+    else:
+        iface_image = project_settings["iface_docker_image"]
+    rospy.loginfo("using docker image '%s' for iface container", iface_image)
+    iface_container = dClient.containers.create(iface_image,
                                                 network=net_name,
                                                 publish_all_ports=True,
                                                 detach=True, tty=True,
@@ -429,6 +436,9 @@ def unregister_client():
 def cleanup_host_master():
     host_master_uri = "http://" + host_ip + ":11311"
     host_master = rosgraph.Master(rospy.get_name(), master_uri=host_master_uri)
+
+    if rospy.has_param("~shutdown"):
+        rospy.delete_param("~shutdown")
 
     for srv_name in project_settings["sync_services_to_client"]:
         srv_full_name = ns + srv_name
@@ -509,7 +519,7 @@ def sync_to_client_master(iface_container_ip):
             client_master.registerService(srv_name, srv_uri, fake_api)
 
 def check_unfinished_jobs():
-    if run_mode == "sim":
+    if run_mode == "real":
         job = jobs_collection.find_one({"project": project_name, "ns": ns,
                                         "$and": [{"status": {"$ne": "finished"}},
                                                  {"status": {"$ne": "submitted"}},
@@ -582,17 +592,22 @@ if __name__ == '__main__':
         sys.exit(1)
 
     if production_mode:
-        rospy.logwarn("started worker in production mode. Press enter if you really want to continue!")
-        raw_input()
+        rospy.logwarn("started worker in production mode. Type 'yes' if you really want to continue!")
+        typed = raw_input().lower()
+        if typed != "yes":
+            rospy.loginfo("aborting...")
+            sys.exit(0)
         db_user = rll_settings["production_db_user"]
         db_pw = rll_settings["production_db_pw"]
         db_host = rll_settings["production_db_host"]
         db_name = rll_settings["production_db_name"]
         db_client_string = "mongodb://" + db_user + ":" + db_pw + "@" + db_host + "/" + db_name
         db_client = pymongo.MongoClient(db_client_string)
+        job_data_save_dir = rll_settings["production_job_data_save_dir"]
     else:
         db_name = rll_settings["test_db_name"]
         db_client = pymongo.MongoClient()
+        job_data_save_dir = rll_settings["test_job_data_save_dir"]
     rospy.loginfo("using database %s", db_name)
     jobs_collection = db_client[db_name].jobs
 
