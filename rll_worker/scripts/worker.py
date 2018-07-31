@@ -157,7 +157,7 @@ def start_job(job, job_id, submit_type):
         #client container
         # terminal command to remove all containers from image "rll-base":
         # docker rm $(docker stop $(docker ps -a -q --filter ancestor=rll-base --format="{{.ID}}"))
-        client_container = create_container(cc_name, "rll-base", False)
+        client_container = create_client_container(cc_name, "rll-base")
     except:
         rospy.logfatal("failed to create container:\n%s", traceback.format_exc())
         # reset job for rerun
@@ -290,10 +290,10 @@ def get_exp_code(job, job_id, submit_type, container):
     return True
 
 
-def create_container(container_name, image_name, all_ports_open):
+def create_client_container(container_name, image_name):
 
     return dClient.containers.create(image_name, network=net_name,
-                                     publish_all_ports=all_ports_open,
+                                     publish_all_ports=False,
                                      detach=True, tty=True,
                                      nano_cpus=int(1e9), # limit to one CPU
                                      mem_limit="1g", # limit RAM to 1GB
@@ -363,8 +363,11 @@ def job_result_codes_to_string(status):
 
 
 def setup_environment_container(dClient):
-    iface_container = create_container(ic_name, project_settings["iface_docker_image"], True)
-
+    iface_container = dClient.containers.create(project_settings["iface_docker_image"],
+                                                network=net_name,
+                                                publish_all_ports=True,
+                                                detach=True, tty=True,
+                                                name = ic_name)
     iface_container.start()
     rospy.loginfo("Started interface container: " + ic_name)
     environment_containers.append(iface_container)
