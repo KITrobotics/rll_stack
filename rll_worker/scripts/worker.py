@@ -63,7 +63,7 @@ def job_loop(jobs_collection, dClient, ns):
     job_id = job["_id"]
     submit_type = job["submit_type"]
 
-    rospy.loginfo("got job with id '%s' with submit type'%s' and create date %s", job_id, submit_type,
+    rospy.loginfo("got job with id '%s' with submit type '%s' and create date %s", job_id, submit_type,
                   str(job["created"]))
 
     success, client_container = start_job(job, job_id, submit_type)
@@ -166,7 +166,17 @@ def start_job(job, job_id, submit_type):
 
     rospy.loginfo("building project")
     jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "building"}})
-    cmd_result = client_container.exec_run("catkin build --no-status", stdin=True, tty=True)
+    try:
+        cmd_result = client_container.exec_run("catkin build --no-status", stdin=True, tty=True)
+    except:
+        rospy.logerr("Docker API error when building")
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "finished",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "building project failed"}})
+        finish_container(client_container)
+        return False, client_container
+
     write_build_log(job_id, cmd_result[1])
     if cmd_result[0] != 0:
         rospy.logerr("building project failed")
@@ -253,7 +263,13 @@ def get_exp_code(job, job_id, submit_type, container):
         # wait a moment to make sure that the container is started
         rospy.sleep(1)
         container.exec_run("mkdir " + ws_repo_path)
-        container.put_archive(ws_repo_path, frp)
+        rospy.sleep(0.1)
+        try:
+            container.put_archive(ws_repo_path, frp)
+        except:
+            rospy.logfatal("failed to upload project to container")
+            sys.exit(1)
+
         rospy.loginfo("uploaded project to container")
 
     if submit_type == "git":

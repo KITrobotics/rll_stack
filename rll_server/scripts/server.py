@@ -340,7 +340,7 @@ if __name__ == '__main__':
 
     production_mode = rospy.get_param("~production")
     if production_mode:
-        rospy.logwarn("started worker in production mode. Press enter if you really want to continue!")
+        rospy.logwarn("started server in production mode. Press enter if you really want to continue!")
         raw_input()
         db_user = rll_settings["production_db_user"]
         db_pw = rll_settings["production_db_pw"]
