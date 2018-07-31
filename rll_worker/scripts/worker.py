@@ -66,6 +66,17 @@ def job_loop(jobs_collection, dClient, ns):
     rospy.loginfo("got job with id '%s' with submit type '%s' and create date %s", job_id, submit_type,
                   str(job["created"]))
 
+    if manual_mode:
+        rospy.loginfo("Got new job, do you want to continue processing? [Y/n]")
+        choice = raw_input().lower()
+        if choice == "n":
+            jobs_collection.find_one_and_update({"_id": job_id},
+                                                {"$set": {"status": "submitted",
+                                                          "job_end": datetime.datetime.now(),
+                                                          "job_result": "manual job processing aborted"}})
+            rospy.loginfo("manual job processing aborted, exiting...")
+            sys.exit(0)
+
     success, client_container = start_job(job, job_id, submit_type)
     if not success:
         rospy.loginfo("starting job failed, returning")
@@ -536,7 +547,10 @@ if __name__ == '__main__':
     run_mode = rospy.get_param("~mode")
     sim_check = rospy.get_param("~sim_check")
     production_mode = rospy.get_param("~production")
+    manual_mode = rospy.get_param("~manual")
     rospy.loginfo("processing project %s in %s mode", project_name, run_mode)
+    if manual_mode:
+        rospy.loginfo("manual processing of jobs enabled")
     try:
         project_settings = rll_settings["project_settings"][project_name]
     except:
