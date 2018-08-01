@@ -171,7 +171,7 @@ def start_job(job, job_id, submit_type):
     rospy.loginfo("building project")
     jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "building"}})
     try:
-        cmd_result = client_container.exec_run("catkin build --no-status", stdin=True, tty=True)
+        cmd_result = client_container.exec_run("catkin build --no-status " + job["project"], stdin=True, tty=True)
     except:
         rospy.logerr("Docker API error when building:\n%s", traceback.format_exc())
         jobs_collection.find_one_and_update({"_id": job_id},
