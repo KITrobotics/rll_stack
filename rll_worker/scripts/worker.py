@@ -340,6 +340,7 @@ def get_client_log(job_id, container):
             outfile.write(d)
 
 def get_iface_log(job_id, container):
+    global REMOVE_CONTAINERS_ON_SHUTDOWN
     log_folder = path.join(job_data_save_dir, str(job_id))
     log_file = path.join(log_folder, run_mode + "-iface.log")
 
@@ -348,10 +349,16 @@ def get_iface_log(job_id, container):
     rospy.sleep(0.1)
     container.exec_run("chown root: /tmp/iface.log.bak", user="root")
     rospy.sleep(0.1)
-    strm, status = container.get_archive("/tmp/iface.log.bak")
-    with open(log_file, 'w') as outfile:
-        for d in strm:
-            outfile.write(d)
+    try:
+        strm, status = container.get_archive("/tmp/iface.log.bak")
+        with open(log_file, 'w') as outfile:
+            for d in strm:
+                outfile.write(d)
+    except:
+        rospy.logfatal("failed to retrieve iface log from container:\n%s", traceback.format_exc())
+        reset_job(job_id, "failed to retrieve log from container")
+        REMOVE_CONTAINERS_ON_SHUTDOWN = False
+        sys.exit(1)
 
     container.exec_run("rm /tmp/iface.log.bak", user="root")
     container.exec_run("truncate -s 0 /tmp/iface.log")
@@ -412,7 +419,10 @@ def setup_environment_container(dClient):
                                                                              "ROS_MASTER_URI": "http://" + host_ip + ":11311"})
 
     rospy.loginfo("waiting for the client master and the iface to come up")
-    rospy.sleep(10)
+    if run_mode == "sim":
+        rospy.sleep(10)
+    else:
+        rospy.sleep(30)
     sync_to_client_master(iface_container_ip)
 
     return iface_container
@@ -508,6 +518,7 @@ def sync_to_host_master():
     return True
 
 def sync_to_client_master(iface_container_ip):
+    global REMOVE_CONTAINERS_ON_SHUTDOWN
     client_master_uri = "http://" + iface_container_ip + ":11311"
     anon_name_client = rosgraph.names.anonymous_name('master_sync')
     client_master = rosgraph.Master(anon_name_client, master_uri=client_master_uri)
@@ -521,6 +532,7 @@ def sync_to_client_master(iface_container_ip):
             srv_uri = host_master.lookupService(srv_full_name)
         except:
             rospy.logfatal(srv_full_name + " service not found")
+            REMOVE_CONTAINERS_ON_SHUTDOWN = False
             sys.exit(1)
         else:
             fake_api = 'http://%s:0' % host_ip
