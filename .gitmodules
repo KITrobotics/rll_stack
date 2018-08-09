@@ -1,17 +1,17 @@
-[submodule "rll_worker/config/docker/base_real/moveit"]
-	path = rll_worker/config/docker/base_real/moveit
+[submodule "rll_worker/config/docker/rll_base_real/moveit"]
+	path = rll_worker/config/docker/rll_base_real/moveit
 	url = git@gitlab.ipr.kit.edu:rll/moveit.git
 	branch = rll-kinetic-devel
-[submodule "rll_worker/config/docker/base_real/moveit_wrapper"]
-	path = rll_worker/config/docker/base_real/moveit_wrapper
+[submodule "rll_worker/config/docker/rll_base_real/moveit_wrapper"]
+	path = rll_worker/config/docker/rll_base_real/moveit_wrapper
 	url = git@gitlab.ipr.kit.edu:rll/moveit_wrapper.git
 	branch = master
-[submodule "rll_worker/config/docker/base_real/rll_moving_robots"]
-	path = rll_worker/config/docker/base_real/rll_moving_robots
+[submodule "rll_worker/config/docker/rll_base_real/rll_moving_robots"]
+	path = rll_worker/config/docker/rll_base_real/rll_moving_robots
 	url = git@gitlab.ipr.kit.edu:rll/rll_moving_robots.git
 	branch = master
-[submodule "rll_worker/config/docker/base_real/schunk_gripper_egl90"]
-	path = rll_worker/config/docker/base_real/schunk_gripper_egl90
+[submodule "rll_worker/config/docker/rll_base_real/schunk_gripper_egl90"]
+	path = rll_worker/config/docker/rll_base_real/schunk_gripper_egl90
 	url = git@gitlab.ipr.kit.edu:rll/schunk_gripper_egl90.git
 	branch = master
 [submodule "rll_worker/config/docker/rll_planning_project/rll_planning_project"]
