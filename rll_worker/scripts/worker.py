@@ -40,10 +40,14 @@ import socket
 from urllib2 import urlopen, URLError
 from tarfile import is_tarfile
 
+REMOVE_CONTAINERS_ON_SHUTDOWN = True
+
 environment_containers = []
 topic_sync_names = {}
 
 def job_loop():
+    global REMOVE_CONTAINERS_ON_SHUTDOWN
+
     job = find_new_job()
     if job == None:
         rospy.sleep(0.1)
@@ -60,7 +64,7 @@ def job_loop():
         if choice == "n":
             reset_job(job_id, "manual job processing aborted")
             rospy.loginfo("manual job processing aborted, exiting...")
-            sys.exit(0)
+            sys.exit()
 
     success, client_container = start_job(job, job_id, submit_type)
     if not success:
@@ -117,6 +121,7 @@ def job_loop():
                                                   "job_data": job_extra_data}})
 
     if resp.job.status == JobStatus.INTERNAL_ERROR:
+        REMOVE_CONTAINERS_ON_SHUTDOWN = False
         rospy.logfatal("Internal error happened when running job environment, please investigate (job ID %s)!", job_id)
         sys.exit(1)
 
@@ -126,7 +131,8 @@ def job_loop():
     job_idle.wait_for_result()
     resp = job_idle.get_result()
     if resp.job.status == JobStatus.INTERNAL_ERROR:
-        rospy.logfatal("Internal error happened when running idle service, please investigate!")
+        REMOVE_CONTAINERS_ON_SHUTDOWN = False
+        rospy.logfatal("Internal error happened when running idle service, please investigate (job ID %s)!", job_id)
         sys.exit(1)
 
     rospy.loginfo("finished job with id '%s' in namespace '%s'\n", job_id, ns)
@@ -251,7 +257,8 @@ def get_exp_code(job, job_id, submit_type, container):
                                                                   "job_end": datetime.datetime.now(),
                                                                   "job_result": "fetching project code failed"}})
                     return False
-            makedirs(code_archive_dir)
+            if not path.exists(code_archive_dir):
+                makedirs(code_archive_dir)
             with open(code_archive_file, 'wb') as fwp:
                 fwp.write(response.read())
 
@@ -337,7 +344,10 @@ def get_iface_log(job_id, container):
     log_file = path.join(log_folder, run_mode + "-iface.log")
 
     container.exec_run("cp /tmp/iface.log /tmp/iface.log.bak", user="root")
+    # TODO: test again if we really need to sleep here
+    rospy.sleep(0.1)
     container.exec_run("chown root: /tmp/iface.log.bak", user="root")
+    rospy.sleep(0.1)
     strm, status = container.get_archive("/tmp/iface.log.bak")
     with open(log_file, 'w') as outfile:
         for d in strm:
@@ -519,22 +529,19 @@ def sync_to_client_master(iface_container_ip):
             client_master.registerService(srv_name, srv_uri, fake_api)
 
 def check_unfinished_jobs():
-    if run_mode == "real":
-        job = jobs_collection.find_one({"project": project_name, "ns": ns,
-                                        "$and": [{"status": {"$ne": "finished"}},
-                                                 {"status": {"$ne": "submitted"}},
-                                                 {"status": {"$ne": "waiting for real"}}]})
-    else:
-        job = jobs_collection.find_one({"project": project_name, "ns": ns,
-                                        "$and": [{"status": {"$ne": "finished"}},
-                                                 {"status": {"$ne": "submitted"}}]})
+    job = jobs_collection.find_one({"project": project_name, "ns": ns,
+                                    "$and": [{"status": {"$ne": "finished"}},
+                                             {"status": {"$ne": "submitted"}},
+                                             {"status": {"$ne": "waiting for real"}}]})
     if job:
         rospy.logfatal("found a job that is marked running in this namespace")
         rospy.logfatal("job data: id '%s', status '%s'", job["_id"], job["status"])
         sys.exit(1)
 
 def start_recording(job_id):
-    goal = VideostreamGoal(str(job_id))
+    goal = VideostreamGoal()
+    goal.base_path = job_data_save_dir
+    goal.video_folder = str(job_id)
     video_client.send_goal(goal)
 
 def stop_recording():
@@ -542,15 +549,17 @@ def stop_recording():
 
 def on_shutdown_call():
     rospy.loginfo("shutdown call received! Trying to shutdown containers...")
-    try:
-        cc = dClient.containers.get(cc_name)
-        finish_container(cc)
-    except:
-        pass
-    for cont in environment_containers:
-        finish_container(cont)
-
-    docker_network.remove()
+    if REMOVE_CONTAINERS_ON_SHUTDOWN:
+        try:
+            cc = dClient.containers.get(cc_name)
+            finish_container(cc)
+        except:
+            pass
+        for cont in environment_containers:
+            finish_container(cont)
+        docker_network.remove()
+    else:
+        rospy.loginfo("not shutting down any containers")
 
 def get_host_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
