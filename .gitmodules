@@ -1,0 +1,24 @@
+[submodule "rll_worker/config/docker/base_real/moveit"]
+	path = rll_worker/config/docker/base_real/moveit
+	url = git@gitlab.ipr.kit.edu:rll/moveit.git
+	branch = rll-kinetic-devel
+[submodule "rll_worker/config/docker/base_real/moveit_wrapper"]
+	path = rll_worker/config/docker/base_real/moveit_wrapper
+	url = git@gitlab.ipr.kit.edu:rll/moveit_wrapper.git
+	branch = master
+[submodule "rll_worker/config/docker/base_real/rll_moving_robots"]
+	path = rll_worker/config/docker/base_real/rll_moving_robots
+	url = git@gitlab.ipr.kit.edu:rll/rll_moving_robots.git
+	branch = master
+[submodule "rll_worker/config/docker/base_real/schunk_gripper_egl90"]
+	path = rll_worker/config/docker/base_real/schunk_gripper_egl90
+	url = git@gitlab.ipr.kit.edu:rll/schunk_gripper_egl90.git
+	branch = master
+[submodule "rll_worker/config/docker/rll_planning_project/rll_planning_project"]
+	path = rll_worker/config/docker/rll_planning_project/rll_planning_project
+	url = git@gitlab.ipr.kit.edu:rll/rll_planning_project.git
+	branch = first_planner
+[submodule "rll_worker/config/docker/rll_planning_project_real/rll_planning_project"]
+	path = rll_worker/config/docker/rll_planning_project_real/rll_planning_project
+	url = git@gitlab.ipr.kit.edu:rll/rll_planning_project.git
+	branch = real
