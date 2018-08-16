@@ -77,13 +77,13 @@ class JobsHandler(tornado.web.RequestHandler):
     def _handle_job_status(self):
         job_id = self.get_argument("job")
 
-        rospy.loginfo("got status request for job id '%s'", job_id)
-
         try:
             job_obj_id = ObjectId(job_id)
         except:
             # TODO: provide error message
             raise tornado.web.HTTPError(400)
+
+        rospy.loginfo("got status request for job id '%s'", job_id)
 
         self.jobs_collection.find_one({"_id": ObjectId(job_id)}, callback=self._db_job_status_cb)
 
@@ -334,7 +334,7 @@ if __name__ == '__main__':
 
     # settings
     rospack = rospkg.RosPack()
-    config_path = rospack.get_path('rll_config') + "/config/rll.yaml"
+    config_path = rospack.get_path('rll_common') + "/config/rll.yaml"
     with open(config_path, 'r') as doc:
         rll_settings = yaml.load(doc)
 

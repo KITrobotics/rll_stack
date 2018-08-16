@@ -422,7 +422,7 @@ def setup_environment_container(dClient):
     if run_mode == "sim":
         rospy.sleep(10)
     else:
-        rospy.sleep(30)
+        rospy.sleep(40)
     sync_to_client_master(iface_container_ip)
 
     return iface_container
@@ -594,7 +594,7 @@ if __name__ == '__main__':
 
     # settings
     rospack = rospkg.RosPack()
-    config_path = rospack.get_path('rll_config') + "/config/rll.yaml"
+    config_path = rospack.get_path('rll_common') + "/config/rll.yaml"
     with open(config_path, 'r') as doc:
         rll_settings = yaml.load(doc)
 

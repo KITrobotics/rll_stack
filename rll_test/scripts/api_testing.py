@@ -14,25 +14,25 @@ import os
 
 
 class test_Submission(unittest.TestCase):
-    PASSWORD = '' #will be set in setUpClass from rll_config
-    JOBS_API_URL = ''#will be set in setUpClass from rll_config
-    MAX_QUEUE = 0#will be set in setUpClass from rll_config
+    PASSWORD = '' #will be set in setUpClass from rll_common
+    JOBS_API_URL = ''#will be set in setUpClass from rll_common
+    MAX_QUEUE = 0#will be set in setUpClass from rll_common
     @classmethod
     def setUpClass(cls):
         
         # settings
         rospack = rospkg.RosPack()
-        config_path = os.path.join(rospack.get_path('rll_config'),"config","rll.yaml")
+        config_path = os.path.join(rospack.get_path('rll_common'),"config","rll.yaml")
         with open(config_path, 'r') as doc:
           rll_settings = yaml.load(doc)
         
         cls.PASSWORD = rll_settings['secret']
-        print("Using password from rll_config")
+        print("Using password from rll_common")
         api_base_url = rll_settings['api_base_url']
         cls.JOBS_API_URL = api_base_url + "jobs"
-        print("Using %s as JOBS_API_URL from rll_config" % cls.JOBS_API_URL)
+        print("Using %s as JOBS_API_URL from rll_common" % cls.JOBS_API_URL)
         cls.MAX_QUEUE = rll_settings['sub_queue_limit']
-        print("Using %d as MAX_QUEUE from rll_config" % cls.MAX_QUEUE)
+        print("Using %d as MAX_QUEUE from rll_common" % cls.MAX_QUEUE)
         
         
     def test_tag_exists(self):

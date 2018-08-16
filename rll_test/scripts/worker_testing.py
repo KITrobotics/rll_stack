@@ -15,23 +15,23 @@ import re
 import rospkg
 
 class test_Worker(unittest.TestCase):
-    PASSWORD = '' #will be set in setUpClass from rll_config
-    JOBS_API_URL = ''#will be set in setUpClass from rll_config
+    PASSWORD = '' #will be set in setUpClass from rll_common
+    JOBS_API_URL = ''#will be set in setUpClass from rll_common
     
     @classmethod
     def setUpClass(cls):
         
         # settings
         rospack = rospkg.RosPack()
-        config_path = path.join(rospack.get_path('rll_config'),"config","rll.yaml")
+        config_path = path.join(rospack.get_path('rll_common'),"config","rll.yaml")
         with open(config_path, 'r') as doc:
           rll_settings = yaml.load(doc)
         
         cls.PASSWORD = rll_settings['secret']
-        print("Using password from rll_config")
+        print("Using password from rll_common")
         api_base_url = rll_settings['api_base_url']
         cls.JOBS_API_URL = api_base_url + "jobs"
-        print("Using %s as JOBS_API_URL from rll_config" % cls.JOBS_API_URL)
+        print("Using %s as JOBS_API_URL from rll_common" % cls.JOBS_API_URL)
 
     def test_build_success(self):
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
@@ -499,7 +499,7 @@ if __name__ == '__main__':
     
     # settings
     rospack = rospkg.RosPack()
-    config_path = rospack.get_path('rll_config') + "/config/rll.yaml"
+    config_path = rospack.get_path('rll_common') + "/config/rll.yaml"
     with open(config_path, 'r') as doc:
         rll_settings = yaml.load(doc)
 
