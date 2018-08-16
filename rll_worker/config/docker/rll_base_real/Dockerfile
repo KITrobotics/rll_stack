@@ -11,4 +11,4 @@ RUN rosdep install --from-paths src --ignore-src -r -y
 
 # build
 USER rll_user
-RUN . /opt/ros/kinetic/setup.bash; catkin build rll_move_real
+RUN . /opt/ros/kinetic/setup.bash; catkin build
