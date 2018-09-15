@@ -7,7 +7,7 @@
     `mkdir -p rll_ws/src && cd rll_ws`   
     `catkin_init_workspace`   
     `cd src`   
-    `git clone https://gitlab.ipr.kit.edu/rll/rll_stack.git`   
+    `git clone https://github.com/KITrobotics/rll_stack.git`   
     `cd ..`
 
 2. Install dependencies:
