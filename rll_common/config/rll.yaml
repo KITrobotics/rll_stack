@@ -17,6 +17,7 @@ cams_base_url: http://localhost
 
 secret: SET_YOUR_SECRET_HERE
 
+# max size of the submission queue
 sub_queue_limit: 70
 
 projects:
