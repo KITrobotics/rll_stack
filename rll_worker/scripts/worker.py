@@ -207,10 +207,21 @@ def start_job(job, job_id, submit_type):
     rospy.loginfo("running launch command %s", launch_cmd)
     # PYTHONUNBUFFERED needs to be disabled to ensure that data is piped before the app finishes and when we are detached
     # stdbuf -o0 does the same for C/C++ apps
-    client_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/client.log\"",
-                              tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0",
-                                                                  "ROS_IP": client_container_ip,
-                                                                  "ROS_MASTER_URI": "http://" + ic_name + ":11311"})
+    try:
+        client_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/client.log\"",
+                                  tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0",
+                                                                      "ROS_IP": client_container_ip,
+                                                                      "ROS_MASTER_URI": "http://" + ic_name + ":11311"})
+    except:
+        rospy.logerr("Docker API error when launching project:\n%s", traceback.format_exc())
+        # TODO: rather reset job? May be entirely our fault and not the client ones
+        jobs_collection.find_one_and_update({"_id": job_id},
+                                            {"$set": {"status": "finished",
+                                                      "job_end": datetime.datetime.now(),
+                                                      "job_result": "launching project failed"}})
+        finish_container(client_container)
+        return False, client_container
+
     # giving the client a little time to start
     # TODO: handle this better with syncing between masters
     rospy.sleep(2)
@@ -260,7 +271,15 @@ def get_exp_code(job, job_id, submit_type, container):
             if not path.exists(code_archive_dir):
                 makedirs(code_archive_dir)
             with open(code_archive_file, 'wb') as fwp:
-                fwp.write(response.read())
+                try:
+                    fwp.write(response.read())
+                except:
+                    rospy.logerr("read error when downloading tar archive: %s", e.code)
+                    jobs_collection.find_one_and_update({"_id": job_id},
+                                                        {"$set": {"status": "finished",
+                                                                  "job_end": datetime.datetime.now(),
+                                                                  "job_result": "fetching project code failed"}})
+                    return False
 
     if not is_tarfile(code_archive_file):
         jobs_collection.find_one_and_update({"_id": job_id},
@@ -422,7 +441,7 @@ def setup_environment_container(dClient):
     if run_mode == "sim":
         rospy.sleep(10)
     else:
-        rospy.sleep(40)
+        rospy.sleep(20)
     sync_to_client_master(iface_container_ip)
 
     return iface_container
@@ -551,6 +570,12 @@ def check_unfinished_jobs():
         sys.exit(1)
 
 def start_recording(job_id):
+    available = video_client.wait_for_server(rospy.Duration.from_sec(2.0))
+    if not available:
+        reset_job(job_id, "video server not available")
+        rospy.logfatal("video server not available")
+        sys.exit(1)
+
     goal = VideostreamGoal()
     goal.base_path = job_data_save_dir
     goal.video_folder = str(job_id)
