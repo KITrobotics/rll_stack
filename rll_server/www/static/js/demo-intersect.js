@@ -120,9 +120,9 @@ $(function() {
     };
 
     function advertise_logs(job_id) {
-        $.getJSON("./api/jobs?op=logs&job=" + job_id, function(obj) {
+        $.getJSON("./api/jobs?op=data_urls&job=" + job_id, function(obj) {
             var download_btn = document.getElementById("log-download-btn");
-            download_btn.href = obj.log_url;
+            download_btn.href = obj.real_run_client_log_url;
             download_btn.download = "job.log";
             download_btn.target = "_blank";
 
@@ -136,7 +136,7 @@ $(function() {
 
             log_embed_handle = function() {
                 if (document.getElementById("log-embed") == null) {
-                    $.get(obj.log_url, function(data) {
+                    $.get(obj.real_run_client_log_url, function(data) {
                         var pre = document.createElement("pre");
                         pre.id = "log-embed";
                         pre.innerHTML = data;
@@ -172,7 +172,7 @@ $(function() {
 
 $("#hanoi_input").click(function() {
     $('input[name="project"]').val("tower_of_hanoi");
-    $('input[name="git_tag"]').val("v0.4");
+    $('input[name="git_tag"]').val("v0.5");
 });
 $("#greetings_input").click(function() {
     $('input[name="project"]').val("greetings");
