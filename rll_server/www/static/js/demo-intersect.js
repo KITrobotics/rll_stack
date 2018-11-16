@@ -7,6 +7,8 @@ $(function() {
     var jobMessages = $("#status-messages");
     var jobIDdiv = $("#job-id-div");
     var view_div = document.getElementById("logs-view");
+    // for HLS video streaming
+    var hls;
     clear_btn = document.getElementById("clear-button");
 
     clear_btn.addEventListener('click', function() {
@@ -101,21 +103,57 @@ $(function() {
         var modal_div = document.getElementById("stream-modal");
         var view_div = document.getElementById("stream-modal-body");
 
-        if (run && document.getElementById("robot_img") != null) {
+        if (run && document.getElementById("robot_video") != null) {
             // stream is already set up
             return
         } else if (run && cam_url != undefined && cam_url != "unknown") {
-            var img = document.createElement("img");
-            img.src = cam_url;
-            img.id = "robot_img";
-            view_div.appendChild(img);
+            var video = document.createElement("video");
+            video.id = "robot_video";
+            video.muted = true;
+            view_div.appendChild(video);
+
+            if(Hls.isSupported()) {
+                hls = new Hls();
+                hls.loadSource(cam_url);
+		var video_id = document.getElementById('robot_video');
+                hls.attachMedia(video_id);
+                hls.on(Hls.Events.MANIFEST_PARSED,function() {
+                    video_id.play();
+                });
+            }
+            // hls.js is not supported on platforms that do not have Media Source Extensions (MSE) enabled.
+            // When the browser has built-in HLS support (check using `canPlayType`), we can provide an HLS manifest (i.e. .m3u8 URL) directly to the video element throught the `src` property.
+            // This is using the built-in support of the plain video element, without using hls.js.
+            // Note: it would be more normal to wait on the 'canplay' event below however on Safari (where you are most likely to find built-in HLS support) the video.src URL must be on the user-driven
+            // white-list before a 'canplay' event will be emitted; the last video event that can be reliably listened-for when the URL is not on the white-list is 'loadedmetadata'.
+            else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = cam_url;
+                video.addEventListener('loadedmetadata',function() {
+                    video.play();
+                });
+            }
+
+            var close_btn = document.getElementById("stream-close");
+            close_btn.addEventListener('click', function() {
+                if(Hls.isSupported()) {
+                    hls.destroy();
+                }
+                // makes the browser stop loading the stream
+                video.src = "#";
+                video.parentNode.removeChild(video);
+            }, false);
+
             $(modal_div).modal('show');
+
         } else {
             $(modal_div).modal('hide');
-            var img = document.getElementById("robot_img");
+            var video = document.getElementById("robot_video");
+            if(Hls.isSupported()) {
+                hls.destroy();
+            }
             // makes the browser stop loading the stream
-            img.src = "#";
-            img.parentNode.removeChild(img);
+            video.src = "#";
+            video.parentNode.removeChild(video);
         }
     };
 

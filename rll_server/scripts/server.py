@@ -229,8 +229,8 @@ class JobsHandler(tornado.web.RequestHandler):
             self.finish()
 
     def _ns_to_cam(self, ns):
-        cam_mapping = {"/iiwa_1/": self.rll_settings["cams_base_url"] + "/stream1/mjpg/video.mjpg",
-                       "/iiwa_2/": self.rll_settings["cams_base_url"] + "/stream2/mjpg/video.mjpg"}
+        cam_mapping = {"/iiwa_1/": self.rll_settings["cams_base_url"] + "/livestream/1/playlist.m3u8",
+                       "/iiwa_2/": self.rll_settings["cams_base_url"] + "/livestream/2/playlist.m3u8"}
         return cam_mapping.get(ns, "unknown")
 
     @tornado.gen.coroutine
