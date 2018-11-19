@@ -3,12 +3,13 @@
 $(function() {
 
     var form = $("#submit-form");
+    var APIurl = form.attr("action");
     var subMessages = $("#submission-messages");
     var jobMessages = $("#status-messages");
     var jobIDdiv = $("#job-id-div");
     var view_div = document.getElementById("logs-view");
-    // for HLS video streaming
-    var hls;
+    var hls; // for HLS video streaming
+
     clear_btn = document.getElementById("clear-button");
 
     clear_btn.addEventListener('click', function() {
@@ -69,7 +70,7 @@ $(function() {
         (function poll(job_id, job_done_or_error) {
             setTimeout(function() {
                 var job_status;
-                $.getJSON("./api/jobs?op=status&job=" + job_id, function(obj) {
+                $.getJSON(APIurl + "?op=status&job=" + job_id, function(obj) {
                     if (obj.status == "success") {
                         $(jobMessages).addClass("success");
                         job_status = "Status: " + obj.job_status;
@@ -102,6 +103,7 @@ $(function() {
     function stream_cam(run, cam_url) {
         var modal_div = document.getElementById("stream-modal");
         var view_div = document.getElementById("stream-modal-body");
+        var video_close_delay = 6000; // HLS has a latency depending on settings, account for this by waiting before closing the video
 
         if (run && document.getElementById("robot_video") != null) {
             // stream is already set up
@@ -146,19 +148,22 @@ $(function() {
             $(modal_div).modal('show');
 
         } else {
-            $(modal_div).modal('hide');
-            var video = document.getElementById("robot_video");
-            if(Hls.isSupported()) {
-                hls.destroy();
-            }
-            // makes the browser stop loading the stream
-            video.src = "#";
-            video.parentNode.removeChild(video);
+            // wait a litte before closing to account for video delay
+            setTimeout(function () {
+		$(modal_div).modal('hide');
+		var video = document.getElementById("robot_video");
+		if(Hls.isSupported()) {
+                    hls.destroy();
+		}
+		// makes the browser stop loading the stream
+		video.src = "#";
+		video.parentNode.removeChild(video);
+	    }, video_close_delay);
         }
     };
 
     function advertise_logs(job_id) {
-        $.getJSON("./api/jobs?op=data_urls&job=" + job_id, function(obj) {
+        $.getJSON(APIurl + "?op=data_urls&job=" + job_id, function(obj) {
             var download_btn = document.getElementById("log-download-btn");
             download_btn.href = obj.real_run_client_log_url;
             download_btn.download = "job.log";
