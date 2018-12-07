@@ -263,18 +263,20 @@ def get_exp_code(job, job_id, submit_type, container):
                     rospy.logerr("failed to reach server for tar archive download: %s", e.reason)
                 elif hasattr(e, "code"):
                     rospy.logerr("server error when downloading tar archive: %s", e.code)
-                    jobs_collection.find_one_and_update({"_id": job_id},
-                                                        {"$set": {"status": "finished",
-                                                                  "job_end": datetime.datetime.now(),
-                                                                  "job_result": "fetching project code failed"}})
-                    return False
+
+                jobs_collection.find_one_and_update({"_id": job_id},
+                                                    {"$set": {"status": "finished",
+                                                              "job_end": datetime.datetime.now(),
+                                                              "job_result": "fetching project code failed"}})
+                return False
+
             if not path.exists(code_archive_dir):
                 makedirs(code_archive_dir)
             with open(code_archive_file, 'wb') as fwp:
                 try:
                     fwp.write(response.read())
                 except:
-                    rospy.logerr("read error when downloading tar archive: %s", e.code)
+                    rospy.logerr("read error when downloading tar archive")
                     jobs_collection.find_one_and_update({"_id": job_id},
                                                         {"$set": {"status": "finished",
                                                                   "job_end": datetime.datetime.now(),
