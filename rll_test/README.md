@@ -5,7 +5,7 @@
 ## Test explanation
 
 #### api\_testing.py: 
-By now, only tests submission.
+Only tests submissions for now.
 
    - test_tag_exists: 
    Submits a existing tag
@@ -20,7 +20,6 @@ By now, only tests submission.
    - test_double_submission: 
    Submits two jobs with same username right after another
 
-
 #### worker\_testing.py: 
 Tests builds of worker
 
@@ -34,35 +33,32 @@ Tests builds of worker
    - test_infinity_loop: 
    Just run a while loop forever, after certain timeout (by now 303 seconds) job_status is checkd for finished and job_result for "execution timeout". By now checking of build logs fails, needs to be investigated
   - test\_available\_topics\_params\_services: 
-  Contains a black and whitelist for eighter services, params and topics. These need to be definded in order to check for topics/params/services that must be available and topics/params/services that must not be enabled. By now, whitelist and blacklist are empty and need to be definded **tbd**
+  Contains a black and whitelist for services, params and topics. These need to be definded in order to check for topics/params/services that must be available and topics/params/services that must not be enabled. By now, whitelist and blacklist are empty and need to be definded **tbd**
   - test\_check\_internet\_connection:
   Checks for internet connection by trying to reach server from google.com 
   - test\_cpu\_load:
   Generates cpu load for the time specified in the project. By now 300 seconds of 100% load on all available cores.
   
 ## How to run tests
-In order to run tests, make sure you set the right fields in the corresponding file:
 
-	PASSWORD = 'password' #RLL password for submission
-	URL = 'http://localhost:8888/jobs' #URL to test
+Prerequisites:
 
+The job collection in the test database needs to be empty.
 
 Run tests directly:
-   
+
    `cd rll_test/scripts`  
-    
+
    `python api_testing.py`
     or
    `python worker_testing.py`
-   
-   Using rostest:
-   `rostest rll_test test_api.launch` runs only api tests
-   `rostest rll_test test_worker.launch` runs only worker tests
-   `rostest rll_test test_all.launch`   runs all tests
-   
-  
-   **_In order to use rostest, make sure the python files containing the test code are marked as executable_**
 
+   Using rostest:   
+   `rostest rll_test test_api.launch` runs only api tests
+   `rostest rll_test test_worker.launch` runs only worker tests   
+   `rostest rll_test test_all.launch`   runs all tests
+
+   **_In order to use rostest, make sure the python files containing the test code are marked as executable_**
 
 ## Evalute tests
 
@@ -78,6 +74,5 @@ Right at the execution you see the overview of the test results, something like:
     ` * TESTS: 3
     ` * ERRORS: 0 []
     ` * FAILURES: 0 []   
-
 
 As you can see, results are also written in the file which is mentioned in the output. There you can see further information like the output of the print statements.

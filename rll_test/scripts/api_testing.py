@@ -29,6 +29,7 @@ import random
 import rospkg
 import yaml
 import os
+from pymongo import MongoClient
 
 
 class test_Submission(unittest.TestCase):
@@ -49,6 +50,8 @@ class test_Submission(unittest.TestCase):
         print("Using %s as JOBS_API_URL from rll_common" % self.JOBS_API_URL)
         self.MAX_QUEUE = rll_settings['sub_queue_limit']
         print("Using %d as MAX_QUEUE from rll_common" % self.MAX_QUEUE)
+        self.TEST_DB_NAME = rll_settings["test_db_name"]
+        print("Using %s as TEST_DB_NAME from rll_common" % self.TEST_DB_NAME)
 
     def test_tag_exists(self):
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])
@@ -218,6 +221,14 @@ class test_Submission(unittest.TestCase):
         res_error = res_json["error"]
         self.assertEqual(res_status, "error")
         self.assertEqual(res_error,"Queue at max size")
+
+        #After filling queue to max, clear collection database again
+        client = MongoClient('mongodb://localhost:27017/')
+        db = client[self.TEST_DB_NAME]
+        collection = db.jobs
+
+        #Clear collection
+        collection.drop()
 
 
 if __name__ == '__main__':

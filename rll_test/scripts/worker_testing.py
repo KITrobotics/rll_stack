@@ -171,7 +171,7 @@ class test_Worker(unittest.TestCase):
         job_id = res_json["job_id"]
         self.assertEqual(res_status, "success")
 
-        timeout = 30 #[seconds]
+        timeout = 60 #[seconds]
 
         job_id = res_json["job_id"] #Get new submitted job id from response
         start_time = time.time()
@@ -196,10 +196,10 @@ class test_Worker(unittest.TestCase):
 
 
         launch_log = path.join(log_folder,"sim-client.log")
-        search_string = "MemoryError"
+        search_string = "No space left on device"
         success = search_string in self.escape_ansi(open(launch_log).read())
 
-        self.assertTrue(success,'Assert that MemoryError string was found in logfile')
+        self.assertTrue(success,'Assert that no space is left on device')
 
 
     def test_available_topics_params_services(self):
@@ -595,11 +595,7 @@ class test_Worker(unittest.TestCase):
             print("Path for logs: "+log_folder)
             self.assertTrue(path.exists(log_folder),"Check for log_folder")
 
-            code_folder = path.join(rll_settings["tar_archive_dir"],job_id)
-            print("Path for code folder: "+code_folder)
-            self.assertTrue(path.exists(code_folder),"Check for tar_folder")
-
-            code_file = path.join(code_folder,"code.tar")
+            code_file = path.join(log_folder,"code.tar")
             print("Path for tar file: "+code_file)
             self.assertTrue(path.exists(code_file),"Check for tar file")
 
