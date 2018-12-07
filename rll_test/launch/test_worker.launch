@@ -1,3 +1,4 @@
- <launch>
-<test test-name="test_worker" type="worker_testing.py" pkg="rll_test" time-limit="300.0"/>
+<?xml version="1.0"?>
+<launch>
+  <test test-name="test_worker" type="worker_testing.py" pkg="rll_test" time-limit="1800.0"/>
 </launch>
