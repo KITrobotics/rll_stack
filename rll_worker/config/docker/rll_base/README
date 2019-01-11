@@ -1,4 +1,0 @@
-Docker:
-
-build with "docker build --network host -t rll-base ."
-run for testing with "docker run --net=host -it rll-base"

@@ -33,7 +33,7 @@ Tests builds of worker
    - test_infinity_loop: 
    Just run a while loop forever, after certain timeout (by now 303 seconds) job_status is checkd for finished and job_result for "execution timeout". By now checking of build logs fails, needs to be investigated
   - test\_available\_topics\_params\_services: 
-  Contains a black and whitelist for services, params and topics. These need to be definded in order to check for topics/params/services that must be available and topics/params/services that must not be enabled. By now, whitelist and blacklist are empty and need to be definded **tbd**
+  Contains a black and whitelist for services, params and topics. These need to be defined in order to check for topics/params/services that must be available and topics/params/services that must not be enabled. By now, whitelist and blacklist are empty and need to be defined **tbd**
   - test\_check\_internet\_connection:
   Checks for internet connection by trying to reach server from google.com 
   - test\_cpu\_load:
@@ -41,28 +41,34 @@ Tests builds of worker
   
 ## How to run tests
 
-Prerequisites:
+### Prerequisites:
 
 The job collection in the test database needs to be empty.
 
-Run tests directly:
+## Test preparations
 
-   `cd rll_test/scripts`  
+Launch the simulation environment:
 
-   `python api_testing.py`
-    or
-   `python worker_testing.py`
+       `roslaunch rll_moveit_config moveit_planning_execution.launch`
 
-   Using rostest:   
-   `rostest rll_test test_api.launch` runs only api tests
-   `rostest rll_test test_worker.launch` runs only worker tests   
-   `rostest rll_test test_all.launch`   runs all tests
+Start the server in a new terminal:
 
-   **_In order to use rostest, make sure the python files containing the test code are marked as executable_**
+      `roslaunch rll_server server.launch`
 
-## Evalute tests
+Then start the worker for the test projects in an additional terminal:
 
-Right at the execution you see the overview of the test results, something like:
+     `roslaunch rll_worker worker.launch project:=test_projects`
+
+Run tests using `rostest`:
+
+    `rostest rll_test test_api.launch` runs only api tests
+    `rostest rll_test test_worker.launch` runs only worker tests   
+    `rostest rll_test test_all.launch`   runs all tests
+
+
+## Evaluate tests
+
+During execution you see the overview of the test results, something like:
 
     `[ROSUNIT] Outputting test results to /home/wirth/.ros/test_results/rll/rosunit-Test_submission.xml
     `[Testcase: test_password_wrong] ... ok
@@ -76,3 +82,5 @@ Right at the execution you see the overview of the test results, something like:
     ` * FAILURES: 0 []   
 
 As you can see, results are also written in the file which is mentioned in the output. There you can see further information like the output of the print statements.
+
+If you want all output in the terminal instead of the XML file, run `rostest` with the `-t` option.

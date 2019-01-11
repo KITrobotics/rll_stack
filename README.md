@@ -13,6 +13,8 @@ Job processing pipeline for the Robot Learning Lab at KIT.
     * Can be configured to use a simulation or the real robot
 * Test framework with a collection of unit tests for the server and the worker
 
+See also the [test framework Readme](rll_test/README.md) and [Docker container Readme](rll_worker/config/docker/README.md) for more information on the test framework and the Docker containers.
+
 ## Quick Installation in a ROS Workspace
 
 1. Create a workspace and clone the core repositories:
