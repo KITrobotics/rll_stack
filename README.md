@@ -35,6 +35,8 @@ Job processing pipeline for the Robot Learning Lab at KIT.
 
     `source devel/setup.bash`
 
+5. Copy the sample config in `rll_common/config/rll.yaml.sample` to `rll_common/config/rll.yaml` and adapt the config for your setup.
+
 ## Additional Dependencies
 
 The server and worker need recent versions of the Docker and Motor Python libraries.

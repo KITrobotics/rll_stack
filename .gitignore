@@ -1,5 +1,3 @@
-# Lines that start with '#' are comments.
-
 # Backup and data files
 eg/eg.*
 *~
@@ -13,8 +11,7 @@ x?
 r?
 
 #Misc
-
-lbr_fri/fri
+rll_common/config/rll.yaml
 
 # patch results
 *.rej
