@@ -42,7 +42,12 @@ See also the [test framework Readme](rll_test/README.md) and [Docker container R
 ## Additional Dependencies
 
 The server and worker need recent versions of the Docker and Motor Python libraries.
-Both of them are not available from `rosdep`, but they  can be installed using `pip`.
+Both of them are not available from `rosdep`, but they  can be installed using `pip`:
+
+     ```
+     pip install "motor<1.3"
+     pip install docker
+     ```
 
 A MongoDB database needs to be accessible.
 
