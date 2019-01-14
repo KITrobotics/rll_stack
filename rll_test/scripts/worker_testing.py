@@ -595,7 +595,11 @@ class test_Worker(unittest.TestCase):
             print("Path for logs: "+log_folder)
             self.assertTrue(path.exists(log_folder),"Check for log_folder")
 
-            code_file = path.join(log_folder,"code.tar")
+            code_folder = path.join(rll_settings["tar_archive_dir"],job_id)
+            print("Path for code folder: "+code_folder)
+            self.assertTrue(path.exists(code_folder),"Check for tar_folder")
+
+            code_file = path.join(code_folder,"code.tar")
             print("Path for tar file: "+code_file)
             self.assertTrue(path.exists(code_file),"Check for tar file")
 

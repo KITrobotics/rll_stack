@@ -6,7 +6,8 @@ production_db_user: prod_db_user
 production_db_pw: SET_YOUR_PASSWORD_HERE
 
 # dirs
-git_archive_dir: /home/rll/projects/test
+git_archive_dir: /home/rll/projects/test/git
+tar_archive_dir: /home/rll/projects/test/tar
 test_job_data_save_dir: /home/rll/logs/test
 production_job_data_save_dir: /home/rll/logs/test
 

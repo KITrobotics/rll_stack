@@ -251,7 +251,7 @@ def get_exp_code(job, job_id, submit_type, container):
 
     elif submit_type == "tar":
         # TODO: check into Git repo for deduplication and compression
-        code_archive_dir = path.join(job_data_save_dir, str(job_id))
+        code_archive_dir = path.join(rll_settings["tar_archive_dir"],str(job_id))
         code_archive_file = path.join(code_archive_dir, "code.tar")
 
         # if this is the case, then the code is already there
@@ -429,8 +429,6 @@ def setup_environment_container(dClient):
 
     # start ROS master
     iface_container.exec_run("bash -c \"source devel/setup.bash && roscore\"", tty=True, detach=True, environment={"ROS_HOSTNAME": ic_name})
-
-    # TODO: the iface container log can be cleared with "truncate -s 0 /tmp/iface.log"
 
     launch_file = project_settings["launch_iface"]
     launch_cmd = "roslaunch --disable-title " + project_settings["iface_project"] + " " + launch_file + " robot:=" + ns + " headless:=true"

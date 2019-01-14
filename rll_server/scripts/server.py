@@ -33,6 +33,7 @@ import git
 import signal
 import datetime
 import re
+from SystemJobStatsHandler import SystemJobStatsHandler
 
 app_closing = False
 
@@ -355,8 +356,8 @@ if __name__ == '__main__':
     db = db_client[db_name]
     rospy.loginfo("using database %s", db_name)
 
-    app = tornado.web.Application([(r"/jobs", JobsHandler, dict(db=db, rll_settings=rll_settings))],
-                                  debug = True)
+    app = tornado.web.Application([(r"/jobs", JobsHandler, dict(db=db, rll_settings=rll_settings)),(r"/system/job_stats", SystemJobStatsHandler,dict(db=db,rll_settings=rll_settings))],
+                                   debug = True)
     app.listen(8888)
     tornado.ioloop.PeriodicCallback(try_exit, 100).start()
     tornado.ioloop.IOLoop.current().start()

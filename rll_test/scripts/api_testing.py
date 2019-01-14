@@ -30,6 +30,7 @@ import rospkg
 import yaml
 import os
 from pymongo import MongoClient
+from bson import json_util
 
 
 class test_Submission(unittest.TestCase):
@@ -48,6 +49,8 @@ class test_Submission(unittest.TestCase):
         api_base_url = rll_settings['api_base_url']
         self.JOBS_API_URL = api_base_url + "jobs"
         print("Using %s as JOBS_API_URL from rll_common" % self.JOBS_API_URL)
+        self.SYSTEM_API_URL = api_base_url + "system/job_stats"
+        print("Using %s as SYSTEM_API_URL from rll_common" % self.SYSTEM_API_URL)
         self.MAX_QUEUE = rll_settings['sub_queue_limit']
         print("Using %d as MAX_QUEUE from rll_common" % self.MAX_QUEUE)
         self.TEST_DB_NAME = rll_settings["test_db_name"]
@@ -179,6 +182,44 @@ class test_Submission(unittest.TestCase):
         position2 = res_status2_json['position']
 
         self.assertEqual(position1+1,position2)
+
+
+    def test_systems_stats(self):
+        client = MongoClient('mongodb://localhost:27017/')
+        db = client[self.TEST_DB_NAME]
+        collection = db.jobs
+
+        #Clear collection
+        collection.drop()
+
+        #Load collection from json file
+        test_entries = []
+        rospack = rospkg.RosPack()
+        test_db = rospack.get_path('rll_test') + "/data/test_job_stats_db.json"
+        for line in open(test_db, 'r'):
+            test_entries.append(json_util.loads(line))
+
+        result = collection.insert_many(test_entries)
+
+        ##request job stats
+        sysstats_status_request = {'job_info_type': 'status', 'project': 'test_projects'}
+        res_status_json = requests.get(self.SYSTEM_API_URL,data=sysstats_status_request).json()
+
+        ##request job results
+        sysstats_result_request = {'job_info_type': 'result', 'project': 'test_projects'}
+        res_result_json = requests.get(self.SYSTEM_API_URL,data=sysstats_result_request).json()
+
+        correct_status = json_util.loads('{"running real": 0, "submitted": 0, "running sim": 0, "processing sim started": 0, "finished": 14, "processing real started": 0, "total": 53, "waiting for real": 39, "downloading code": 0}')
+
+        correct_result = json_util.loads('{"sim internal error": 0, "launching project failed": 0, "real failure": 0, "real success": 0, "sim success": 46, "total real": 0, "sim failure": 3, "building project failed": 4, "fetching project code failed": 0, "unknown": 0, "total": 53, "real internal error": 0}')
+
+        status_compare = True if correct_status==res_status_json else False
+        result_compare = True if correct_result==res_result_json else False
+
+        self.assertTrue(status_compare)
+        self.assertTrue(result_compare)
+
+
 
     def test_zqueue_maximum(self):
         random_name = ''.join([random.choice(string.ascii_letters + string.digits) for n in xrange(6)])

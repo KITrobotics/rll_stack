@@ -15,3 +15,8 @@ catkin_package(
 #  CATKIN_DEPENDS rospy std_msgs
 #  DEPENDS system_lib
 )
+
+install(FILES
+  data/test_job_stats_db.json
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
