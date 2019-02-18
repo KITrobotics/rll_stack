@@ -75,6 +75,7 @@ def job_loop():
     if not available:
         reset_job(job_id, "job env not available")
         rospy.logfatal("Job env action server is not available, please investigate!")
+        REMOVE_CONTAINERS_ON_SHUTDOWN = False
         sys.exit(1)
 
     if run_mode == "real":
@@ -200,7 +201,7 @@ def start_job(job, job_id, submit_type):
 
     jobs_collection.find_one_and_update({"_id": job_id}, {"$set": {"status": "running " + run_mode}})
     launch_file = project_settings["launch_client"]
-    launch_cmd = "roslaunch --disable-title " + job["project"] + " " + launch_file + " robot:=" + ns
+    launch_cmd = "roslaunch --disable-title " + job["project"] + " " + launch_file + " robot:=" + ns.replace("/", "")
     client_container.reload()
     client_container_ip = client_container.attrs["NetworkSettings"]["Networks"][net_name]["IPAddress"]
 
@@ -283,13 +284,13 @@ def get_exp_code(job, job_id, submit_type, container):
                                                                   "job_result": "fetching project code failed"}})
                     return False
 
-    if not is_tarfile(code_archive_file):
-        jobs_collection.find_one_and_update({"_id": job_id},
-                                            {"$set": {"status": "finished",
-                                                      "job_end": datetime.datetime.now(),
-                                                      "job_result": "fetching project code failed"}})
-        rospy.logerr("code archive is not a tar file")
-        return False
+        if not is_tarfile(code_archive_file):
+            jobs_collection.find_one_and_update({"_id": job_id},
+                                                {"$set": {"status": "finished",
+                                                          "job_end": datetime.datetime.now(),
+                                                          "job_result": "fetching project code failed"}})
+            rospy.logerr("code archive is not a tar file")
+            return False
 
     with open(code_archive_file, 'rb') as frp:
         container.start()
@@ -327,7 +328,7 @@ def create_client_container(container_name, image_name):
                                      name = container_name)
 
 def reset_job(job_id, reason):
-    if run_mode == "real":
+    if run_mode == "real" and sim_check == False:
         reset_status = "waiting for real"
     else:
         reset_status = "submitted"
@@ -431,7 +432,7 @@ def setup_environment_container(dClient):
     iface_container.exec_run("bash -c \"source devel/setup.bash && roscore\"", tty=True, detach=True, environment={"ROS_HOSTNAME": ic_name})
 
     launch_file = project_settings["launch_iface"]
-    launch_cmd = "roslaunch --disable-title " + project_settings["iface_project"] + " " + launch_file + " robot:=" + ns + " headless:=true"
+    launch_cmd = "roslaunch --disable-title " + project_settings["iface_project"] + " " + launch_file + " robot:=" + ns.replace("/", "") + " headless:=true"
     rospy.loginfo("running iface launch command %s", launch_cmd)
     ic_result = iface_container.exec_run("bash -c \"source devel/setup.bash && stdbuf -o0 " + launch_cmd + " &> /tmp/iface.log\"",
                                          tty=True, detach=True, environment={"PYTHONUNBUFFERED": "0", "ROS_IP": iface_container_ip,
