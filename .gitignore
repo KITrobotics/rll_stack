@@ -28,6 +28,7 @@ build/*/Debug/*
 build/*/MinSizeRel/*
 build/*/RelWithDebInfo/*
 build
+*.pyc
 
 *#
 *.#

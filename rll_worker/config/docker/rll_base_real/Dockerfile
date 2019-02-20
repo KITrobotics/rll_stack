@@ -11,4 +11,6 @@ RUN rosdep install --from-paths src --ignore-src -r -y
 
 # build
 USER rll_user
+# MoveIt needs this
+ENV PYTHONIOENCODING=UTF-8
 RUN . /opt/ros/kinetic/setup.bash; catkin build
