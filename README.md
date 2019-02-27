@@ -1,6 +1,6 @@
 # Robot Learning Lab Stack
 
-Job processing pipeline for the Robot Learning Lab at KIT.
+Job processing pipeline for the KUKA Robot Learning Lab at KIT.
 
 ## Components
 
